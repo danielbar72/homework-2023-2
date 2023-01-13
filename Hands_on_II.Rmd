@@ -1,0 +1,77 @@
+---
+title: "Hands_on_sessions_4_5"
+author: "Janet Piñero (janet.pinero@upf.edu)"
+date: "Last update: `r format(Sys.time(), '%d %B, %Y')`"      
+output:
+  html_document:
+    toc: true
+    fig_caption: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Exercise 1
+From a dataset of a gene expression microarray (an Affymetrix mouse4302 array) that reports the transcriptomes of around 100 individual cells from mouse embryos at different time points in early development, from the paper of Ohnishi et al. (2014). More details can be found in the paper and in the documentation of the [Bioconductor data package Hiiragi2013](http://bioconductor.org/packages/release/data/experiment/html/Hiiragi2013.html). 
+
+
+Compute the distance between each group. Store the result in d.
+```{r}
+
+```
+
+Make a hierarchical clustering plot and add the groups as labels.
+```{r}
+
+```
+
+Run a k-means on the data . Make a table comparing the identified clusters to the actual sample groups. Run the algorithm several times to see if the answer changes.
+```{r}
+
+```
+
+Visualize the results of the clustering analysis (Hint: check the [factoextra](https://cran.r-project.org/web/packages/factoextra/index.html) package)
+```{r}
+
+```
+
+Compare the clustering results using both methodologies
+```{r}
+
+```
+
+Plot a heatmap of the 50 genes with top variance over all samples. Add the information about sample group as annotation to the heatmap*. From a qualitative point of view, are those genes good at separating the groups? 
+
+```{r}
+
+```
+
+Your favorite heatmap package clusters the observations. Investigate what method and parameters does the package uses by default. 
+
+
+# Exercise 2
+
+Go back to the Hiiragi dataset and 
+
+Perform a PCA on the data and visualize the results (PC1 and PC2, and also, PC3 ). Label the points in the plot with their respective samples
+
+Visualize the data using the PC1 and PC2 again, but this time, color the observations by cluster, using the k means clusters, with k of your choice. Discuss the result. Produce a caption for the plot
+
+
+What are the top 20 genes that contribute to the PC1? Are they the same genes that are more variable according to the exercise from the previous assignment?
+
+
+Perform t-SNE and visualize the result. Test at least 2 perplexity values. Compare to the PCA results.
+
+
+
+
+
+
+# session info {.unnumbered}
+
+```{r, results='asis',  echo=FALSE, message=FALSE }
+sessionInfo()
+```
