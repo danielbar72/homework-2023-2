@@ -298,23 +298,17 @@ overflow-y: auto;
 border: 1px solid #ddd;
 border-radius: 4px;
 }
-.tabset-dropdown > .nav-tabs > li.active:before {
-content: "";
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+content: "\e259";
 font-family: 'Glyphicons Halflings';
 display: inline-block;
 padding: 10px;
 border-right: 1px solid #ddd;
 }
 .tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
-content: "";
-border: none;
-}
-.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
-content: "";
+content: "\e258";
 font-family: 'Glyphicons Halflings';
-display: inline-block;
-padding: 10px;
-border-right: 1px solid #ddd;
+border: none;
 }
 .tabset-dropdown > .nav-tabs > li.active {
 display: block;
@@ -357,7 +351,7 @@ display: none;
 
 <h1 class="title toc-ignore">my title</h1>
 <h4 class="author">my name (<a href="mailto:dummy@mail.com" class="email">dummy@mail.com</a>)</h4>
-<h4 class="date">Last update: 23 enero, 2023</h4>
+<h4 class="date">Last update: 21 enero, 2024</h4>
 
 </div>
 
@@ -395,7 +389,7 @@ install_github(&quot;genomicsclass/tissuesGeneExpression&quot;)</code></pre>
 <h2>Clustering gene expression data in healthy tissues</h2>
 <p>Download the <a href="https://www.ebi.ac.uk/biostudies/arrayexpress/studies/E-MTAB-6081">data</a>
 (design and tpm files) corresponding to the publication <a href="https://www.nature.com/articles/sdata2017185">An RNASeq normal
-tissue atlas for mouse and rat</a>. Download the <a href="https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz">gene
+tissue atlas for mouse and rat</a>. Download the <a href="https://storage.googleapis.com/adult-gtex/bulk-gex/v8/rna-seq/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz">gene
 expression data</a> corresponding to the publication <a href="https://www.science.org/doi/10.1126/science.1262110">The
 Genotype-Tissue Expression (GTEx) pilot analysis: multitissue gene
 regulation in humans</a> from the <a href="https://gtexportal.org/home/datasets">GTEX portal</a></p>
@@ -403,7 +397,8 @@ regulation in humans</a> from the <a href="https://gtexportal.org/home/datasets"
 categories:</p>
 <pre class="r"><code>gtex_tissues &lt;-  c(&quot;colon&quot;, &quot;ileum&quot;, &quot;duodenum&quot;, &quot;jejunum&quot;, &quot;small intestine&quot;  , &quot;muscle&quot;, &quot;pancreas&quot;, &quot;liver&quot;, &quot;stomach&quot;,  &quot;kidney&quot;,  &quot;quadriceps&quot;, &quot;thymus&quot;, &quot;heart&quot; ,    &quot;esophagus&quot;, &quot;brain&quot; )</code></pre>
 <p><strong>pro tip</strong> Do not manually copy from the column names.
-Convert all column names to lower case, and split them appropriately</p>
+Convert all column names from GTEX data to lower case, and split them
+appropriately.</p>
 <p>Cluster tissues using gene expression data. Run k-means and
 hierarchical clustering. For each algorithm, determine the optimal
 number of clusters.</p>
@@ -437,7 +432,7 @@ same genes that are more variable according to the exercise 1?</p>
 <div id="session-info" class="section level1 unnumbered">
 <h1 class="unnumbered">session info</h1>
 <p>R version 3.6.3 (2020-02-29) Platform: x86_64-pc-linux-gnu (64-bit)
-Running under: Ubuntu 20.04.5 LTS</p>
+Running under: Ubuntu 20.04.6 LTS</p>
 <p>Matrix products: default BLAS:
 /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.9.0 LAPACK:
 /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.9.0</p>
@@ -449,13 +444,12 @@ Running under: Ubuntu 20.04.5 LTS</p>
 [11] LC_MEASUREMENT=es_ES.UTF-8 LC_IDENTIFICATION=C</p>
 <p>attached base packages: [1] stats graphics grDevices utils datasets
 methods base</p>
-<p>loaded via a namespace (and not attached): [1] digest_0.6.29 R6_2.5.1
-jsonlite_1.8.0 magrittr_2.0.3 [5] evaluate_0.16 stringi_1.7.8
-cachem_1.0.6 rlang_1.0.4<br />
-[9] cli_3.3.0 rstudioapi_0.13 jquerylib_0.1.4 bslib_0.4.0<br />
-[13] rmarkdown_2.14 tools_3.6.3 stringr_1.4.1 xfun_0.32<br />
-[17] yaml_2.3.5 fastmap_1.1.0 compiler_3.6.3 htmltools_0.5.3 [21]
-knitr_1.39 sass_0.4.2</p>
+<p>loaded via a namespace (and not attached): [1] digest_0.6.31 R6_2.5.1
+jsonlite_1.8.4 evaluate_0.21<br />
+[5] cachem_1.0.8 rlang_1.1.1 cli_3.6.1 rstudioapi_0.14 [9]
+jquerylib_0.1.4 bslib_0.4.2 rmarkdown_2.21 tools_3.6.3<br />
+[13] xfun_0.39 yaml_2.3.7 fastmap_1.1.1 compiler_3.6.3 [17]
+htmltools_0.5.5 knitr_1.43 sass_0.4.6</p>
 </div>
 
 

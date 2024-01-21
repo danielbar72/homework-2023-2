@@ -29,7 +29,8 @@ install_github("genomicsclass/tissuesGeneExpression")
 ## Clustering gene expression data in healthy tissues
 
 Download the [data](https://www.ebi.ac.uk/biostudies/arrayexpress/studies/E-MTAB-6081) (design and tpm files) corresponding to the publication [An RNASeq normal tissue atlas for mouse and rat](https://www.nature.com/articles/sdata2017185). 
-Download the [gene expression data](https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz) corresponding to the publication  [The Genotype-Tissue Expression (GTEx) pilot analysis: multitissue gene regulation in humans](https://www.science.org/doi/10.1126/science.1262110) from  the [GTEX portal](https://gtexportal.org/home/datasets)
+Download the [gene expression data](https://storage.googleapis.com/adult-gtex/bulk-gex/v8/rna-seq/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz)
+corresponding to the publication  [The Genotype-Tissue Expression (GTEx) pilot analysis: multitissue gene regulation in humans](https://www.science.org/doi/10.1126/science.1262110) from  the [GTEX portal](https://gtexportal.org/home/datasets)
 
 From GTEX data, keep only tissues belonging to the following categories:  
 
