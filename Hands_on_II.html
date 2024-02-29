@@ -351,7 +351,7 @@ display: none;
 
 <h1 class="title toc-ignore">my title</h1>
 <h4 class="author">my name (<a href="mailto:dummy@mail.com" class="email">dummy@mail.com</a>)</h4>
-<h4 class="date">Last update: 21 enero, 2024</h4>
+<h4 class="date">Last update: 29 February, 2024</h4>
 
 </div>
 
@@ -382,8 +382,27 @@ section</a> of the book <a href="http://genomicsclass.github.io/book/">PH525x se
 Data Science</a>.</p>
 <p>Install the package <a href="https://github.com/genomicsclass/tissuesGeneExpression">tissuesGeneExpression</a>
 by running in R:</p>
-<pre class="r"><code>library(devtools)
-install_github(&quot;genomicsclass/tissuesGeneExpression&quot;)</code></pre>
+<pre class="r"><code>install.packages(&quot;devtools&quot;)
+install.packages(&quot;rafalib&quot;)
+install_github(&quot;genomicsclass/tissuesGeneExpression&quot;)
+library(devtools)
+library(rafalib)
+library(tissuesGeneExpression)
+
+
+data(tissuesGeneExpression)
+d &lt;- dist( t(e) )
+mypar()
+hc &lt;- hclust(d)
+hc
+table(t(e))
+tissue
+plot(hc,labels=tissue,cex=0.5)
+myplclust(hc, labels=tissue, lab.col=as.fumeric(tissue), cex=0.5)
+abline(h=120)
+
+hclusters &lt;- cutree(hc, h=120)
+table(true=tissue, cluster=hclusters)</code></pre>
 </div>
 <div id="clustering-gene-expression-data-in-healthy-tissues" class="section level2">
 <h2>Clustering gene expression data in healthy tissues</h2>
@@ -395,13 +414,846 @@ Genotype-Tissue Expression (GTEx) pilot analysis: multitissue gene
 regulation in humans</a> from the <a href="https://gtexportal.org/home/datasets">GTEX portal</a></p>
 <p>From GTEX data, keep only tissues belonging to the following
 categories:</p>
-<pre class="r"><code>gtex_tissues &lt;-  c(&quot;colon&quot;, &quot;ileum&quot;, &quot;duodenum&quot;, &quot;jejunum&quot;, &quot;small intestine&quot;  , &quot;muscle&quot;, &quot;pancreas&quot;, &quot;liver&quot;, &quot;stomach&quot;,  &quot;kidney&quot;,  &quot;quadriceps&quot;, &quot;thymus&quot;, &quot;heart&quot; ,    &quot;esophagus&quot;, &quot;brain&quot; )</code></pre>
+<pre class="r"><code># load data
+human &lt;- read.delim(&quot;data.gct&quot;, stringsAsFactors = FALSE, sep = &quot;\t&quot;, skip = 2)
+mouse &lt;- read.delim(&quot;mouse_tpm.txt&quot;)
+mouseD &lt;- read.delim(&quot;mouse_design.txt&quot;)
+rat &lt;- read.delim(&quot;rat_tpm.txt&quot;)
+ratD &lt;- read.delim(&quot;rat_design.txt&quot;)
+
+# check data
+head(mouse)</code></pre>
+<pre><code>##                    X199_1_Pancreas X199_2_Liver X199_3_Stomach X199_4_Duodenum
+## ENSMUSG00000000001      0.51288675 5.926545e+00     5.73340964     11.26812100
+## ENSMUSG00000000003      0.00000000 0.000000e+00     0.00000000      0.00000000
+## ENSMUSG00000000028      0.01053091 1.118434e-01     0.38171017      0.64223518
+## ENSMUSG00000000031      0.09404835 9.826036e-03     0.11269817      0.01338705
+## ENSMUSG00000000037      0.00000000 0.000000e+00     0.01961241      0.02643084
+## ENSMUSG00000000049      0.12355576 2.792545e+02     0.04654288      0.12237138
+##                    X199_5_Jejunum X199_6_Ileum X199_7_Colon X199_8_Kidney
+## ENSMUSG00000000001   14.997441535  18.98766148  12.95896769   7.782624978
+## ENSMUSG00000000003    0.000000000   0.00000000   0.00000000   0.000000000
+## ENSMUSG00000000028    0.692122535   1.46415411   1.52791322   0.264255455
+## ENSMUSG00000000031    0.022707432   0.03453278   0.01336138   0.004694894
+## ENSMUSG00000000037    0.008537995   0.06888663   0.27233638   0.038900549
+## ENSMUSG00000000049    0.224349431   0.19145117   0.17428743   0.639511616
+##                    X199_9_Quadriceps X199_10_Thymus X199_11_Heart
+## ENSMUSG00000000001        1.46610881    18.09883369   17.87469257
+## ENSMUSG00000000003        0.00000000     0.01916573    0.01610483
+## ENSMUSG00000000028        0.27547467     6.60344433    6.24867561
+## ENSMUSG00000000031       58.68056730     1.52559177    1.58413004
+## ENSMUSG00000000037        0.01716353     0.46679190    0.14096959
+## ENSMUSG00000000049        0.08907873     0.05621946    0.06128203
+##                    X199_12_Esophagus X199_13_Brain X199_14_Pancreas
+## ENSMUSG00000000001       16.18996114     3.7434800      1.278866681
+## ENSMUSG00000000003        0.00000000     0.0000000      0.000000000
+## ENSMUSG00000000028        0.55300927     0.2485651      0.005316683
+## ENSMUSG00000000031      262.79854506     0.3810998      0.076171704
+## ENSMUSG00000000037        0.38773556     0.1540403      0.000000000
+## ENSMUSG00000000049        0.06271632     0.2265593      0.025560975
+##                    X199_15_Liver X199_16_Stomach X199_17_Duodenum
+## ENSMUSG00000000001  5.634660e+00      5.38109979      10.83091671
+## ENSMUSG00000000003  0.000000e+00      0.00000000       0.00000000
+## ENSMUSG00000000028  1.124268e-01      0.32792926       0.94263585
+## ENSMUSG00000000031  1.238451e-01      0.44152096       0.13341765
+## ENSMUSG00000000037  3.366948e-03      0.04777491       0.08131473
+## ENSMUSG00000000049  1.848308e+02      0.04936259       0.15801707
+##                    X199_18_Jejunum X199_19_Ileum X199_20_Colon X199_21_Kidney
+## ENSMUSG00000000001     15.86973788   16.22984317    14.4841569     7.03333273
+## ENSMUSG00000000003      0.00000000    0.00000000     0.0000000     0.00000000
+## ENSMUSG00000000028      1.50190815    1.45615913     0.8770987     0.27688423
+## ENSMUSG00000000031      0.11284378    0.13880995     0.1082531     0.04107623
+## ENSMUSG00000000037      0.08246881    0.08673644     0.1082531     0.02349628
+## ENSMUSG00000000049      0.12197200    0.11111127     0.1290637     0.53551236
+##                    X199_22_Quadriceps X199_23_Thymus X199_24_Heart
+## ENSMUSG00000000001         1.39542078     18.1724728    1.90000137
+## ENSMUSG00000000003         0.00000000      0.0000000    0.00000000
+## ENSMUSG00000000028         0.24663410      6.7284646    0.28870256
+## ENSMUSG00000000031        67.96124531      1.2436939    2.35518799
+## ENSMUSG00000000037         0.01920933      0.1458309    0.03092079
+## ENSMUSG00000000049         0.04202041      0.0000000    0.00000000
+##                    X199_25_Esophagus X199_26_Brain X199_27_Pancreas
+## ENSMUSG00000000001        16.1568284    3.38170071       0.87872899
+## ENSMUSG00000000003         0.0000000    0.00000000       0.00000000
+## ENSMUSG00000000028         0.6578819    0.24276022       0.03864329
+## ENSMUSG00000000031       375.1804870    0.23743547       0.33144471
+## ENSMUSG00000000037         0.3744390    0.08374381       0.00000000
+## ENSMUSG00000000049         0.0745393    0.08592211       0.05672013
+##                    X199_28_Liver X199_29_Stomach X199_30_Duodenum
+## ENSMUSG00000000001    2.16216107      5.08651205       8.94448034
+## ENSMUSG00000000003    0.00000000      0.00000000       0.00000000
+## ENSMUSG00000000028    0.03724664      0.33771211       0.69986625
+## ENSMUSG00000000031    0.25849908      0.13201237       0.05753177
+## ENSMUSG00000000037    0.00000000      0.01887751       0.02161329
+## ENSMUSG00000000049   90.04281581      0.00000000       0.12377106
+##                    X199_31_Jejunum X199_32_Ileum X199_33_Colon X199_34_Kidney
+## ENSMUSG00000000001     13.96226919   14.53971719    11.3110508     7.06018227
+## ENSMUSG00000000003      0.00000000    0.00000000     0.0000000     0.00000000
+## ENSMUSG00000000028      1.08708283    1.02282623     0.9920456     0.14300419
+## ENSMUSG00000000031      0.15497344    0.11852212     0.2197333     0.18189865
+## ENSMUSG00000000037      0.12984261    0.02619273     0.4221554     0.03772092
+## ENSMUSG00000000049      0.09040117    0.26232022     0.0000000     0.26957883
+##                    X199_35_Quadriceps X199_36_Thymus X199_37_Heart
+## ENSMUSG00000000001         1.54642752    17.41995999    2.09472054
+## ENSMUSG00000000003         0.00000000     0.00000000    0.00000000
+## ENSMUSG00000000028         0.26511919     6.61927941    0.26675236
+## ENSMUSG00000000031        99.62839571     1.87773282    1.27251764
+## ENSMUSG00000000037         0.03685581     0.10768936    0.06056367
+## ENSMUSG00000000049         0.06521811     0.02852964    0.01377994
+##                    X199_38_Esophagus X199_39_Brain
+## ENSMUSG00000000001        10.6344178     3.3481938
+## ENSMUSG00000000003         0.0000000     0.0000000
+## ENSMUSG00000000028         0.4731032     0.1795119
+## ENSMUSG00000000031       157.0980808     0.1516935
+## ENSMUSG00000000037         0.2233843     0.1302947
+## ENSMUSG00000000049         0.0000000     0.0608676</code></pre>
+<pre class="r"><code>head(mouseD)</code></pre>
+<pre><code>##                       file    group comparison         sample include
+## 1 199_1_ATCACG_L004_R1_001 Pancreas         NA 199_1_Pancreas       1
+## 2 199_2_TTAGGC_L004_R1_001    Liver         NA    199_2_Liver       1
+## 3 199_3_GATCAG_L004_R1_001  Stomach         NA  199_3_Stomach       1
+## 4 199_4_TAGCTT_L004_R1_001 Duodenum         NA 199_4_Duodenum       1
+## 5 199_5_GGCTAC_L004_R1_001  Jejunum         NA  199_5_Jejunum       1
+## 6 199_6_GAGTGG_L004_R1_001    Ileum         NA    199_6_Ileum       1</code></pre>
+<pre class="r"><code>head(rat)</code></pre>
+<pre><code>##                    X199_40_Pancreas X199_41_Liver X199_42_Stomach
+## ENSRNOG00000000001       0.00000000   0.005793126     0.128328356
+## ENSRNOG00000000007       0.02890567   0.002673750     0.013022751
+## ENSRNOG00000000008       0.00000000   0.000000000     0.015464516
+## ENSRNOG00000000009       0.00000000   0.000000000     0.000000000
+## ENSRNOG00000000010       0.00000000   0.000000000     0.002713073
+## ENSRNOG00000000012       0.21073474   0.008169792     0.142300682
+##                    X199_43_Duodenum X199_44_Jejunum X199_45_Ileum X199_46_Colon
+## ENSRNOG00000000001      0.058298050     0.057061656   0.120858886    0.30004408
+## ENSRNOG00000000007      0.000000000     0.002909659   0.003435265    0.03471985
+## ENSRNOG00000000008      0.000000000     0.000000000   0.000000000    0.00000000
+## ENSRNOG00000000009      0.000000000     0.000000000   0.000000000    0.00000000
+## ENSRNOG00000000010      0.003805356     0.003717898   0.000000000    0.05022266
+## ENSRNOG00000000012      0.073976115     0.045261370   0.086193934    0.23770985
+##                    X199_47_Kidneys X199_48_Quadriceps X199_49_Thymus
+## ENSRNOG00000000001     0.015928748         0.03389630     0.01638996
+## ENSRNOG00000000007     0.004822465         0.00263122     0.02994319
+## ENSRNOG00000000008     0.004237924         0.01377521     0.01323804
+## ENSRNOG00000000009     0.000000000         0.01176310     0.00000000
+## ENSRNOG00000000010     0.000000000         0.00000000     0.52652735
+## ENSRNOG00000000012     0.098056788         1.02338977     0.68869337
+##                    X199_50_Heart X199_51_Esophagus X199_52_Brain
+## ENSRNOG00000000001    0.03565470       0.141241771     0.0166137
+## ENSRNOG00000000007    0.04892156       0.006815043    31.2896578
+## ENSRNOG00000000008    0.00829179       0.000000000     0.2349373
+## ENSRNOG00000000009    0.00000000       0.007666924     0.0000000
+## ENSRNOG00000000010    0.01174670       0.004259402    25.3112664
+## ENSRNOG00000000012    2.48352924       0.762944092     0.3187876
+##                    X199_53_Pancreas X199_54_Liver X199_55_Stomach
+## ENSRNOG00000000001      0.045246672   0.010732990     0.150555502
+## ENSRNOG00000000007      0.092117584   0.014590158     0.022408885
+## ENSRNOG00000000008      0.008121198   0.000000000     0.000000000
+## ENSRNOG00000000009      0.000000000   0.000000000     0.000000000
+## ENSRNOG00000000010      0.011601711   0.003186356     0.002549514
+## ENSRNOG00000000012      0.222172762   0.007714337     0.128817542
+##                    X199_56_Duodenum X199_57_Jejunum X199_58_Ileum X199_59_Colon
+## ENSRNOG00000000001      0.054549083     0.200819712   0.097754784   0.329924851
+## ENSRNOG00000000007      0.014286665     0.011066240   0.005991422   0.017270756
+## ENSRNOG00000000008      0.000000000     0.000000000   0.000000000   0.000000000
+## ENSRNOG00000000009      0.007143332     0.000000000   0.000000000   0.009792697
+## ENSRNOG00000000010      0.000000000     0.004068471   0.000000000   0.338649254
+## ENSRNOG00000000012      0.029222723     0.098782468   0.139537071   0.201551501
+##                    X199_60_Kidneys X199_61_Quadriceps X199_62_Thymus
+## ENSRNOG00000000001     0.050696167        0.021306816     0.02538907
+## ENSRNOG00000000007     0.005793848        0.008637899     0.01159501
+## ENSRNOG00000000008     0.010300174        0.043189493     0.02059114
+## ENSRNOG00000000009     0.000000000        0.000000000     0.00000000
+## ENSRNOG00000000010     0.007403250        0.000000000     0.26008804
+## ENSRNOG00000000012     0.063249503        1.239682406     0.20531162
+##                    X199_63_Heart X199_64_Esophagus X199_65_Brain
+## ENSRNOG00000000001   0.037103016       0.295643694    0.06038038
+## ENSRNOG00000000007   0.065530866       0.000000000   28.82480110
+## ENSRNOG00000000008   0.003736994       0.005387980    0.09779642
+## ENSRNOG00000000009   0.000000000       0.021030504    0.00000000
+## ENSRNOG00000000010   0.002669282       0.003823728   22.21938560
+## ENSRNOG00000000012   2.545160116       0.632305561    0.28250099
+##                    X199_66_Pancreas X199_67_Liver X199_68_Stomach
+## ENSRNOG00000000001       0.02485488   0.013416913     0.101942493
+## ENSRNOG00000000007       0.19210064   0.030713414     0.031116546
+## ENSRNOG00000000008       0.00000000   0.000000000     0.007551296
+## ENSRNOG00000000009       0.00000000   0.000000000     0.000000000
+## ENSRNOG00000000010       0.01436060   0.007759178     0.016144150
+## ENSRNOG00000000012       0.05313422   0.000000000     0.066138935
+##                    X199_69_Duodenum X199_70_Jejunum X199_71_Ileum X199_72_Colon
+## ENSRNOG00000000001      0.067166712     0.104242407    0.35473870    0.32209027
+## ENSRNOG00000000007      0.011088243     0.020713758    0.04040389    0.04661611
+## ENSRNOG00000000008      0.019754915     0.004715327    0.03910651    0.01165403
+## ENSRNOG00000000009      0.000000000     0.000000000    0.00000000    0.00000000
+## ENSRNOG00000000010      0.003568630     0.016840454    0.24742746    0.04154914
+## ENSRNOG00000000012      0.008666673     0.198212138    0.33323938    0.14288850
+##                    X199_73_Kidneys X199_74_Quadriceps X199_75_Thymus
+## ENSRNOG00000000001      0.02233991        0.024364072     0.02394895
+## ENSRNOG00000000007      0.00000000        0.005549594     0.02182444
+## ENSRNOG00000000008      0.00000000        0.014753799     0.03862733
+## ENSRNOG00000000009      0.00000000        0.000000000     0.00000000
+## ENSRNOG00000000010      0.00000000        0.010557765     0.29047754
+## ENSRNOG00000000012      0.04244584        1.482283084     0.20414545
+##                    X199_76_Heart X199_77_Esophagus X199_78_Brain
+## ENSRNOG00000000001   0.027566613        0.22960295   0.042169027
+## ENSRNOG00000000007   0.057577556        0.02358934  28.378578264
+## ENSRNOG00000000008   0.008962544        0.01205678   0.253014161
+## ENSRNOG00000000009   0.005703437        0.01537676   0.008826075
+## ENSRNOG00000000010   0.000000000        0.01293046   5.333303155
+## ENSRNOG00000000012   2.778660275        0.79190303   0.240657656
+##                    X199_79_Unknown
+## ENSRNOG00000000001     0.021579680
+## ENSRNOG00000000007    45.924587479
+## ENSRNOG00000000008     0.005426469
+## ENSRNOG00000000009     0.003407318
+## ENSRNOG00000000010     0.077863523
+## ENSRNOG00000000012     0.007067030</code></pre>
+<pre class="r"><code>head(ratD)</code></pre>
+<pre><code>##                        file    group comparison          sample include
+## 1 199_40_ATTCCT_L008_R1_001 Pancreas         NA 199_40_Pancreas       1
+## 2 199_41_ATCACG_L005_R1_001    Liver         NA    199_41_Liver       1
+## 3 199_42_TTAGGC_L005_R1_001  Stomach         NA  199_42_Stomach       1
+## 4 199_43_GATCAG_L005_R1_001 Duodenum         NA 199_43_Duodenum       1
+## 5 199_44_TAGCTT_L005_R1_001  Jejunum         NA  199_44_Jejunum       1
+## 6 199_45_GGCTAC_L005_R1_001    Ileum         NA    199_45_Ileum       1</code></pre>
+<pre class="r"><code># convert cols to lower
+colnames(human) &lt;- tolower(colnames(human))
+colnames(mouse) &lt;- tolower(colnames(mouse))
+colnames(rat) &lt;- tolower(colnames(rat))
+
+
+colnames(human)</code></pre>
+<pre><code>##  [1] &quot;name&quot;                                 
+##  [2] &quot;description&quot;                          
+##  [3] &quot;adipose...subcutaneous&quot;               
+##  [4] &quot;adipose...visceral&quot;                   
+##  [5] &quot;adrenal.gland&quot;                        
+##  [6] &quot;artery...aorta&quot;                       
+##  [7] &quot;artery...coronary&quot;                    
+##  [8] &quot;artery...tibial&quot;                      
+##  [9] &quot;bladder&quot;                              
+## [10] &quot;brain...amygdala&quot;                     
+## [11] &quot;brain...anterior.cingulate.cortex&quot;    
+## [12] &quot;brain...caudate&quot;                      
+## [13] &quot;brain...cerebellar.hemisphere&quot;        
+## [14] &quot;brain...cerebellum&quot;                   
+## [15] &quot;brain...cortex&quot;                       
+## [16] &quot;brain...frontal.cortex&quot;               
+## [17] &quot;brain...hippocampus&quot;                  
+## [18] &quot;brain...hypothalamus&quot;                 
+## [19] &quot;brain...nucleus.accumbens&quot;            
+## [20] &quot;brain...putamen&quot;                      
+## [21] &quot;brain...spinal.cord&quot;                  
+## [22] &quot;brain...substantia.nigra&quot;             
+## [23] &quot;breast...mammary.tissue&quot;              
+## [24] &quot;cells...cultured.fibroblasts&quot;         
+## [25] &quot;cells...ebv.transformed.lymphocytes&quot;  
+## [26] &quot;cervix...ectocervix&quot;                  
+## [27] &quot;cervix...endocervix&quot;                  
+## [28] &quot;colon...sigmoid&quot;                      
+## [29] &quot;colon...transverse&quot;                   
+## [30] &quot;esophagus...gastroesophageal.junction&quot;
+## [31] &quot;esophagus...mucosa&quot;                   
+## [32] &quot;esophagus...muscularis&quot;               
+## [33] &quot;fallopian.tube&quot;                       
+## [34] &quot;heart...atrial.appendage&quot;             
+## [35] &quot;heart...left.ventricle&quot;               
+## [36] &quot;kidney...cortex&quot;                      
+## [37] &quot;kidney...medulla&quot;                     
+## [38] &quot;liver&quot;                                
+## [39] &quot;lung&quot;                                 
+## [40] &quot;minor.salivary.gland&quot;                 
+## [41] &quot;muscle...skeletal&quot;                    
+## [42] &quot;nerve...tibial&quot;                       
+## [43] &quot;ovary&quot;                                
+## [44] &quot;pancreas&quot;                             
+## [45] &quot;pituitary&quot;                            
+## [46] &quot;prostate&quot;                             
+## [47] &quot;skin...not.sun.exposed&quot;               
+## [48] &quot;skin...sun.exposed&quot;                   
+## [49] &quot;small.intestine...terminal.ileum&quot;     
+## [50] &quot;spleen&quot;                               
+## [51] &quot;stomach&quot;                              
+## [52] &quot;testis&quot;                               
+## [53] &quot;thyroid&quot;                              
+## [54] &quot;uterus&quot;                               
+## [55] &quot;vagina&quot;                               
+## [56] &quot;whole.blood&quot;</code></pre>
+<pre class="r"><code>colnames(mouse)</code></pre>
+<pre><code>##  [1] &quot;x199_1_pancreas&quot;    &quot;x199_2_liver&quot;       &quot;x199_3_stomach&quot;    
+##  [4] &quot;x199_4_duodenum&quot;    &quot;x199_5_jejunum&quot;     &quot;x199_6_ileum&quot;      
+##  [7] &quot;x199_7_colon&quot;       &quot;x199_8_kidney&quot;      &quot;x199_9_quadriceps&quot; 
+## [10] &quot;x199_10_thymus&quot;     &quot;x199_11_heart&quot;      &quot;x199_12_esophagus&quot; 
+## [13] &quot;x199_13_brain&quot;      &quot;x199_14_pancreas&quot;   &quot;x199_15_liver&quot;     
+## [16] &quot;x199_16_stomach&quot;    &quot;x199_17_duodenum&quot;   &quot;x199_18_jejunum&quot;   
+## [19] &quot;x199_19_ileum&quot;      &quot;x199_20_colon&quot;      &quot;x199_21_kidney&quot;    
+## [22] &quot;x199_22_quadriceps&quot; &quot;x199_23_thymus&quot;     &quot;x199_24_heart&quot;     
+## [25] &quot;x199_25_esophagus&quot;  &quot;x199_26_brain&quot;      &quot;x199_27_pancreas&quot;  
+## [28] &quot;x199_28_liver&quot;      &quot;x199_29_stomach&quot;    &quot;x199_30_duodenum&quot;  
+## [31] &quot;x199_31_jejunum&quot;    &quot;x199_32_ileum&quot;      &quot;x199_33_colon&quot;     
+## [34] &quot;x199_34_kidney&quot;     &quot;x199_35_quadriceps&quot; &quot;x199_36_thymus&quot;    
+## [37] &quot;x199_37_heart&quot;      &quot;x199_38_esophagus&quot;  &quot;x199_39_brain&quot;</code></pre>
+<pre class="r"><code>colnames(rat)</code></pre>
+<pre><code>##  [1] &quot;x199_40_pancreas&quot;   &quot;x199_41_liver&quot;      &quot;x199_42_stomach&quot;   
+##  [4] &quot;x199_43_duodenum&quot;   &quot;x199_44_jejunum&quot;    &quot;x199_45_ileum&quot;     
+##  [7] &quot;x199_46_colon&quot;      &quot;x199_47_kidneys&quot;    &quot;x199_48_quadriceps&quot;
+## [10] &quot;x199_49_thymus&quot;     &quot;x199_50_heart&quot;      &quot;x199_51_esophagus&quot; 
+## [13] &quot;x199_52_brain&quot;      &quot;x199_53_pancreas&quot;   &quot;x199_54_liver&quot;     
+## [16] &quot;x199_55_stomach&quot;    &quot;x199_56_duodenum&quot;   &quot;x199_57_jejunum&quot;   
+## [19] &quot;x199_58_ileum&quot;      &quot;x199_59_colon&quot;      &quot;x199_60_kidneys&quot;   
+## [22] &quot;x199_61_quadriceps&quot; &quot;x199_62_thymus&quot;     &quot;x199_63_heart&quot;     
+## [25] &quot;x199_64_esophagus&quot;  &quot;x199_65_brain&quot;      &quot;x199_66_pancreas&quot;  
+## [28] &quot;x199_67_liver&quot;      &quot;x199_68_stomach&quot;    &quot;x199_69_duodenum&quot;  
+## [31] &quot;x199_70_jejunum&quot;    &quot;x199_71_ileum&quot;      &quot;x199_72_colon&quot;     
+## [34] &quot;x199_73_kidneys&quot;    &quot;x199_74_quadriceps&quot; &quot;x199_75_thymus&quot;    
+## [37] &quot;x199_76_heart&quot;      &quot;x199_77_esophagus&quot;  &quot;x199_78_brain&quot;     
+## [40] &quot;x199_79_unknown&quot;</code></pre>
+<pre class="r"><code>gtex_tissues &lt;-  c(&quot;name&quot;, &quot;colon&quot;, &quot;ileum&quot;, &quot;duodenum&quot;, &quot;jejunum&quot;, &quot;small intestine&quot;  , &quot;muscle&quot;, &quot;pancreas&quot;, &quot;liver&quot;, &quot;stomach&quot;,  &quot;kidney&quot;,  &quot;quadriceps&quot;, &quot;thymus&quot;, &quot;heart&quot; ,    &quot;esophagus&quot;, &quot;brain&quot; )
+
+
+
+
+keep_subset &lt;- function(tissues, columns){
+  columns_to_keep_data &lt;- c()
+  
+  for (t in tissues){
+    for(a in columns){
+      #if (any(grepl(t, columns_to_keep_data))) {
+      #  next
+      #}
+      if (grepl(t, a)) {
+        columns_to_keep_data &lt;- c(columns_to_keep_data, a)
+      }
+    }
+  }
+  print(columns_to_keep_data)
+  return (columns_to_keep_data)
+}
+
+human_cols &lt;- keep_subset(gtex_tissues, colnames(human))</code></pre>
+<pre><code>##  [1] &quot;name&quot;                                 
+##  [2] &quot;colon...sigmoid&quot;                      
+##  [3] &quot;colon...transverse&quot;                   
+##  [4] &quot;small.intestine...terminal.ileum&quot;     
+##  [5] &quot;muscle...skeletal&quot;                    
+##  [6] &quot;pancreas&quot;                             
+##  [7] &quot;liver&quot;                                
+##  [8] &quot;stomach&quot;                              
+##  [9] &quot;kidney...cortex&quot;                      
+## [10] &quot;kidney...medulla&quot;                     
+## [11] &quot;heart...atrial.appendage&quot;             
+## [12] &quot;heart...left.ventricle&quot;               
+## [13] &quot;esophagus...gastroesophageal.junction&quot;
+## [14] &quot;esophagus...mucosa&quot;                   
+## [15] &quot;esophagus...muscularis&quot;               
+## [16] &quot;brain...amygdala&quot;                     
+## [17] &quot;brain...anterior.cingulate.cortex&quot;    
+## [18] &quot;brain...caudate&quot;                      
+## [19] &quot;brain...cerebellar.hemisphere&quot;        
+## [20] &quot;brain...cerebellum&quot;                   
+## [21] &quot;brain...cortex&quot;                       
+## [22] &quot;brain...frontal.cortex&quot;               
+## [23] &quot;brain...hippocampus&quot;                  
+## [24] &quot;brain...hypothalamus&quot;                 
+## [25] &quot;brain...nucleus.accumbens&quot;            
+## [26] &quot;brain...putamen&quot;                      
+## [27] &quot;brain...spinal.cord&quot;                  
+## [28] &quot;brain...substantia.nigra&quot;</code></pre>
+<pre class="r"><code>mouse_cols &lt;- keep_subset(gtex_tissues, colnames(mouse))</code></pre>
+<pre><code>##  [1] &quot;x199_7_colon&quot;       &quot;x199_20_colon&quot;      &quot;x199_33_colon&quot;     
+##  [4] &quot;x199_6_ileum&quot;       &quot;x199_19_ileum&quot;      &quot;x199_32_ileum&quot;     
+##  [7] &quot;x199_4_duodenum&quot;    &quot;x199_17_duodenum&quot;   &quot;x199_30_duodenum&quot;  
+## [10] &quot;x199_5_jejunum&quot;     &quot;x199_18_jejunum&quot;    &quot;x199_31_jejunum&quot;   
+## [13] &quot;x199_1_pancreas&quot;    &quot;x199_14_pancreas&quot;   &quot;x199_27_pancreas&quot;  
+## [16] &quot;x199_2_liver&quot;       &quot;x199_15_liver&quot;      &quot;x199_28_liver&quot;     
+## [19] &quot;x199_3_stomach&quot;     &quot;x199_16_stomach&quot;    &quot;x199_29_stomach&quot;   
+## [22] &quot;x199_8_kidney&quot;      &quot;x199_21_kidney&quot;     &quot;x199_34_kidney&quot;    
+## [25] &quot;x199_9_quadriceps&quot;  &quot;x199_22_quadriceps&quot; &quot;x199_35_quadriceps&quot;
+## [28] &quot;x199_10_thymus&quot;     &quot;x199_23_thymus&quot;     &quot;x199_36_thymus&quot;    
+## [31] &quot;x199_11_heart&quot;      &quot;x199_24_heart&quot;      &quot;x199_37_heart&quot;     
+## [34] &quot;x199_12_esophagus&quot;  &quot;x199_25_esophagus&quot;  &quot;x199_38_esophagus&quot; 
+## [37] &quot;x199_13_brain&quot;      &quot;x199_26_brain&quot;      &quot;x199_39_brain&quot;</code></pre>
+<pre class="r"><code>rat_cols &lt;- keep_subset(gtex_tissues, colnames(rat))</code></pre>
+<pre><code>##  [1] &quot;x199_46_colon&quot;      &quot;x199_59_colon&quot;      &quot;x199_72_colon&quot;     
+##  [4] &quot;x199_45_ileum&quot;      &quot;x199_58_ileum&quot;      &quot;x199_71_ileum&quot;     
+##  [7] &quot;x199_43_duodenum&quot;   &quot;x199_56_duodenum&quot;   &quot;x199_69_duodenum&quot;  
+## [10] &quot;x199_44_jejunum&quot;    &quot;x199_57_jejunum&quot;    &quot;x199_70_jejunum&quot;   
+## [13] &quot;x199_40_pancreas&quot;   &quot;x199_53_pancreas&quot;   &quot;x199_66_pancreas&quot;  
+## [16] &quot;x199_41_liver&quot;      &quot;x199_54_liver&quot;      &quot;x199_67_liver&quot;     
+## [19] &quot;x199_42_stomach&quot;    &quot;x199_55_stomach&quot;    &quot;x199_68_stomach&quot;   
+## [22] &quot;x199_47_kidneys&quot;    &quot;x199_60_kidneys&quot;    &quot;x199_73_kidneys&quot;   
+## [25] &quot;x199_48_quadriceps&quot; &quot;x199_61_quadriceps&quot; &quot;x199_74_quadriceps&quot;
+## [28] &quot;x199_49_thymus&quot;     &quot;x199_62_thymus&quot;     &quot;x199_75_thymus&quot;    
+## [31] &quot;x199_50_heart&quot;      &quot;x199_63_heart&quot;      &quot;x199_76_heart&quot;     
+## [34] &quot;x199_51_esophagus&quot;  &quot;x199_64_esophagus&quot;  &quot;x199_77_esophagus&quot; 
+## [37] &quot;x199_52_brain&quot;      &quot;x199_65_brain&quot;      &quot;x199_78_brain&quot;</code></pre>
+<pre class="r"><code>human &lt;- human[human_cols]
+head(human)</code></pre>
+<pre><code>##                name colon...sigmoid colon...transverse
+## 1 ENSG00000223972.5       0.0000000           0.000000
+## 2 ENSG00000227232.5       4.6477700           3.595090
+## 3 ENSG00000278267.1       0.0000000           0.000000
+## 4 ENSG00000243485.5       0.0000000           0.000000
+## 5 ENSG00000237613.2       0.0000000           0.000000
+## 6 ENSG00000268020.3       0.0154943           0.032754
+##   small.intestine...terminal.ileum muscle...skeletal pancreas     liver
+## 1                        0.0000000         0.0000000  0.00000 0.0000000
+## 2                        4.1937800         1.4166700  1.80871 1.7654100
+## 3                        0.0000000         0.0000000  0.00000 0.0000000
+## 4                        0.0000000         0.0000000  0.00000 0.0000000
+## 5                        0.0000000         0.0000000  0.00000 0.0000000
+## 6                        0.0354079         0.0375151  0.00000 0.0332748
+##     stomach kidney...cortex kidney...medulla heart...atrial.appendage
+## 1 0.0000000       0.0000000          0.00000                0.0000000
+## 2 3.0624800       2.7708100          2.21451                1.5203100
+## 3 0.0000000       0.0000000          0.00000                0.0000000
+## 4 0.0000000       0.0176647          0.00000                0.0000000
+## 5 0.0000000       0.0000000          0.00000                0.0000000
+## 6 0.0325904       0.0389038          0.00000                0.0364598
+##   heart...left.ventricle esophagus...gastroesophageal.junction
+## 1              0.0000000                             0.0000000
+## 2              0.9249620                             4.3264100
+## 3              0.0000000                             0.0000000
+## 4              0.0178934                             0.0000000
+## 5              0.0000000                             0.0000000
+## 6              0.0511975                             0.0356929
+##   esophagus...mucosa esophagus...muscularis brain...amygdala
+## 1            0.00000                0.00000        0.0000000
+## 2            3.11749                4.10335        1.4385900
+## 3            0.00000                0.00000        0.0000000
+## 4            0.00000                0.00000        0.0000000
+## 5            0.00000                0.00000        0.0000000
+## 6            0.00000                0.00000        0.0496721
+##   brain...anterior.cingulate.cortex brain...caudate
+## 1                         0.0000000       0.0000000
+## 2                         1.6928500       1.5660500
+## 3                         0.0000000       0.0000000
+## 4                         0.0000000       0.0242641
+## 5                         0.0000000       0.0000000
+## 6                         0.0535347       0.0455724
+##   brain...cerebellar.hemisphere brain...cerebellum brain...cortex
+## 1                     0.0000000          0.0000000      0.0000000
+## 2                     4.9923100          5.7209900      2.4831700
+## 3                     0.0000000          0.0000000      0.0000000
+## 4                     0.0000000          0.0000000      0.0273660
+## 5                     0.0000000          0.0000000      0.0000000
+## 6                     0.0246426          0.0372239      0.0429845
+##   brain...frontal.cortex brain...hippocampus brain...hypothalamus
+## 1              0.0000000           0.0000000            0.0000000
+## 2              2.1466700           1.6859900            1.7481100
+## 3              0.0000000           0.0000000            0.0000000
+## 4              0.0303822           0.0000000            0.0247143
+## 5              0.0000000           0.0000000            0.0000000
+## 6              0.0421429           0.0529141            0.0396660
+##   brain...nucleus.accumbens brain...putamen brain...spinal.cord
+## 1                 0.0000000       0.0000000           0.0000000
+## 2                 1.5389900       1.4416700           2.7304900
+## 3                 0.0000000       0.0000000           0.0000000
+## 4                 0.0306685       0.0234739           0.0000000
+## 5                 0.0000000       0.0000000           0.0000000
+## 6                 0.0445129       0.0484946           0.0416046
+##   brain...substantia.nigra
+## 1                0.0000000
+## 2                1.7419400
+## 3                0.0000000
+## 4                0.0195261
+## 5                0.0000000
+## 6                0.0466989</code></pre>
+<pre class="r"><code>mouse &lt;- mouse[mouse_cols]
+new_column &lt;- rep(0, nrow(mouse))  # Create a vector of zeros (or any other values you want)
+mouse &lt;- cbind(dummy_column = new_column, mouse)
+
+head(mouse)</code></pre>
+<pre><code>##                    dummy_column x199_7_colon x199_20_colon x199_33_colon
+## ENSMUSG00000000001            0  12.95896769    14.4841569    11.3110508
+## ENSMUSG00000000003            0   0.00000000     0.0000000     0.0000000
+## ENSMUSG00000000028            0   1.52791322     0.8770987     0.9920456
+## ENSMUSG00000000031            0   0.01336138     0.1082531     0.2197333
+## ENSMUSG00000000037            0   0.27233638     0.1082531     0.4221554
+## ENSMUSG00000000049            0   0.17428743     0.1290637     0.0000000
+##                    x199_6_ileum x199_19_ileum x199_32_ileum x199_4_duodenum
+## ENSMUSG00000000001  18.98766148   16.22984317   14.53971719     11.26812100
+## ENSMUSG00000000003   0.00000000    0.00000000    0.00000000      0.00000000
+## ENSMUSG00000000028   1.46415411    1.45615913    1.02282623      0.64223518
+## ENSMUSG00000000031   0.03453278    0.13880995    0.11852212      0.01338705
+## ENSMUSG00000000037   0.06888663    0.08673644    0.02619273      0.02643084
+## ENSMUSG00000000049   0.19145117    0.11111127    0.26232022      0.12237138
+##                    x199_17_duodenum x199_30_duodenum x199_5_jejunum
+## ENSMUSG00000000001      10.83091671       8.94448034   14.997441535
+## ENSMUSG00000000003       0.00000000       0.00000000    0.000000000
+## ENSMUSG00000000028       0.94263585       0.69986625    0.692122535
+## ENSMUSG00000000031       0.13341765       0.05753177    0.022707432
+## ENSMUSG00000000037       0.08131473       0.02161329    0.008537995
+## ENSMUSG00000000049       0.15801707       0.12377106    0.224349431
+##                    x199_18_jejunum x199_31_jejunum x199_1_pancreas
+## ENSMUSG00000000001     15.86973788     13.96226919      0.51288675
+## ENSMUSG00000000003      0.00000000      0.00000000      0.00000000
+## ENSMUSG00000000028      1.50190815      1.08708283      0.01053091
+## ENSMUSG00000000031      0.11284378      0.15497344      0.09404835
+## ENSMUSG00000000037      0.08246881      0.12984261      0.00000000
+## ENSMUSG00000000049      0.12197200      0.09040117      0.12355576
+##                    x199_14_pancreas x199_27_pancreas x199_2_liver x199_15_liver
+## ENSMUSG00000000001      1.278866681       0.87872899 5.926545e+00  5.634660e+00
+## ENSMUSG00000000003      0.000000000       0.00000000 0.000000e+00  0.000000e+00
+## ENSMUSG00000000028      0.005316683       0.03864329 1.118434e-01  1.124268e-01
+## ENSMUSG00000000031      0.076171704       0.33144471 9.826036e-03  1.238451e-01
+## ENSMUSG00000000037      0.000000000       0.00000000 0.000000e+00  3.366948e-03
+## ENSMUSG00000000049      0.025560975       0.05672013 2.792545e+02  1.848308e+02
+##                    x199_28_liver x199_3_stomach x199_16_stomach x199_29_stomach
+## ENSMUSG00000000001    2.16216107     5.73340964      5.38109979      5.08651205
+## ENSMUSG00000000003    0.00000000     0.00000000      0.00000000      0.00000000
+## ENSMUSG00000000028    0.03724664     0.38171017      0.32792926      0.33771211
+## ENSMUSG00000000031    0.25849908     0.11269817      0.44152096      0.13201237
+## ENSMUSG00000000037    0.00000000     0.01961241      0.04777491      0.01887751
+## ENSMUSG00000000049   90.04281581     0.04654288      0.04936259      0.00000000
+##                    x199_8_kidney x199_21_kidney x199_34_kidney
+## ENSMUSG00000000001   7.782624978     7.03333273     7.06018227
+## ENSMUSG00000000003   0.000000000     0.00000000     0.00000000
+## ENSMUSG00000000028   0.264255455     0.27688423     0.14300419
+## ENSMUSG00000000031   0.004694894     0.04107623     0.18189865
+## ENSMUSG00000000037   0.038900549     0.02349628     0.03772092
+## ENSMUSG00000000049   0.639511616     0.53551236     0.26957883
+##                    x199_9_quadriceps x199_22_quadriceps x199_35_quadriceps
+## ENSMUSG00000000001        1.46610881         1.39542078         1.54642752
+## ENSMUSG00000000003        0.00000000         0.00000000         0.00000000
+## ENSMUSG00000000028        0.27547467         0.24663410         0.26511919
+## ENSMUSG00000000031       58.68056730        67.96124531        99.62839571
+## ENSMUSG00000000037        0.01716353         0.01920933         0.03685581
+## ENSMUSG00000000049        0.08907873         0.04202041         0.06521811
+##                    x199_10_thymus x199_23_thymus x199_36_thymus x199_11_heart
+## ENSMUSG00000000001    18.09883369     18.1724728    17.41995999   17.87469257
+## ENSMUSG00000000003     0.01916573      0.0000000     0.00000000    0.01610483
+## ENSMUSG00000000028     6.60344433      6.7284646     6.61927941    6.24867561
+## ENSMUSG00000000031     1.52559177      1.2436939     1.87773282    1.58413004
+## ENSMUSG00000000037     0.46679190      0.1458309     0.10768936    0.14096959
+## ENSMUSG00000000049     0.05621946      0.0000000     0.02852964    0.06128203
+##                    x199_24_heart x199_37_heart x199_12_esophagus
+## ENSMUSG00000000001    1.90000137    2.09472054       16.18996114
+## ENSMUSG00000000003    0.00000000    0.00000000        0.00000000
+## ENSMUSG00000000028    0.28870256    0.26675236        0.55300927
+## ENSMUSG00000000031    2.35518799    1.27251764      262.79854506
+## ENSMUSG00000000037    0.03092079    0.06056367        0.38773556
+## ENSMUSG00000000049    0.00000000    0.01377994        0.06271632
+##                    x199_25_esophagus x199_38_esophagus x199_13_brain
+## ENSMUSG00000000001        16.1568284        10.6344178     3.7434800
+## ENSMUSG00000000003         0.0000000         0.0000000     0.0000000
+## ENSMUSG00000000028         0.6578819         0.4731032     0.2485651
+## ENSMUSG00000000031       375.1804870       157.0980808     0.3810998
+## ENSMUSG00000000037         0.3744390         0.2233843     0.1540403
+## ENSMUSG00000000049         0.0745393         0.0000000     0.2265593
+##                    x199_26_brain x199_39_brain
+## ENSMUSG00000000001    3.38170071     3.3481938
+## ENSMUSG00000000003    0.00000000     0.0000000
+## ENSMUSG00000000028    0.24276022     0.1795119
+## ENSMUSG00000000031    0.23743547     0.1516935
+## ENSMUSG00000000037    0.08374381     0.1302947
+## ENSMUSG00000000049    0.08592211     0.0608676</code></pre>
+<pre class="r"><code>rat &lt;- rat[rat_cols] # Create a vector of zeros (or any other values you want)
+new_column &lt;- rep(0, nrow(rat))
+rat &lt;- cbind(dummy_column = new_column, rat)
+
+head(rat)</code></pre>
+<pre><code>##                    dummy_column x199_46_colon x199_59_colon x199_72_colon
+## ENSRNOG00000000001            0    0.30004408   0.329924851    0.32209027
+## ENSRNOG00000000007            0    0.03471985   0.017270756    0.04661611
+## ENSRNOG00000000008            0    0.00000000   0.000000000    0.01165403
+## ENSRNOG00000000009            0    0.00000000   0.009792697    0.00000000
+## ENSRNOG00000000010            0    0.05022266   0.338649254    0.04154914
+## ENSRNOG00000000012            0    0.23770985   0.201551501    0.14288850
+##                    x199_45_ileum x199_58_ileum x199_71_ileum x199_43_duodenum
+## ENSRNOG00000000001   0.120858886   0.097754784    0.35473870      0.058298050
+## ENSRNOG00000000007   0.003435265   0.005991422    0.04040389      0.000000000
+## ENSRNOG00000000008   0.000000000   0.000000000    0.03910651      0.000000000
+## ENSRNOG00000000009   0.000000000   0.000000000    0.00000000      0.000000000
+## ENSRNOG00000000010   0.000000000   0.000000000    0.24742746      0.003805356
+## ENSRNOG00000000012   0.086193934   0.139537071    0.33323938      0.073976115
+##                    x199_56_duodenum x199_69_duodenum x199_44_jejunum
+## ENSRNOG00000000001      0.054549083      0.067166712     0.057061656
+## ENSRNOG00000000007      0.014286665      0.011088243     0.002909659
+## ENSRNOG00000000008      0.000000000      0.019754915     0.000000000
+## ENSRNOG00000000009      0.007143332      0.000000000     0.000000000
+## ENSRNOG00000000010      0.000000000      0.003568630     0.003717898
+## ENSRNOG00000000012      0.029222723      0.008666673     0.045261370
+##                    x199_57_jejunum x199_70_jejunum x199_40_pancreas
+## ENSRNOG00000000001     0.200819712     0.104242407       0.00000000
+## ENSRNOG00000000007     0.011066240     0.020713758       0.02890567
+## ENSRNOG00000000008     0.000000000     0.004715327       0.00000000
+## ENSRNOG00000000009     0.000000000     0.000000000       0.00000000
+## ENSRNOG00000000010     0.004068471     0.016840454       0.00000000
+## ENSRNOG00000000012     0.098782468     0.198212138       0.21073474
+##                    x199_53_pancreas x199_66_pancreas x199_41_liver
+## ENSRNOG00000000001      0.045246672       0.02485488   0.005793126
+## ENSRNOG00000000007      0.092117584       0.19210064   0.002673750
+## ENSRNOG00000000008      0.008121198       0.00000000   0.000000000
+## ENSRNOG00000000009      0.000000000       0.00000000   0.000000000
+## ENSRNOG00000000010      0.011601711       0.01436060   0.000000000
+## ENSRNOG00000000012      0.222172762       0.05313422   0.008169792
+##                    x199_54_liver x199_67_liver x199_42_stomach x199_55_stomach
+## ENSRNOG00000000001   0.010732990   0.013416913     0.128328356     0.150555502
+## ENSRNOG00000000007   0.014590158   0.030713414     0.013022751     0.022408885
+## ENSRNOG00000000008   0.000000000   0.000000000     0.015464516     0.000000000
+## ENSRNOG00000000009   0.000000000   0.000000000     0.000000000     0.000000000
+## ENSRNOG00000000010   0.003186356   0.007759178     0.002713073     0.002549514
+## ENSRNOG00000000012   0.007714337   0.000000000     0.142300682     0.128817542
+##                    x199_68_stomach x199_47_kidneys x199_60_kidneys
+## ENSRNOG00000000001     0.101942493     0.015928748     0.050696167
+## ENSRNOG00000000007     0.031116546     0.004822465     0.005793848
+## ENSRNOG00000000008     0.007551296     0.004237924     0.010300174
+## ENSRNOG00000000009     0.000000000     0.000000000     0.000000000
+## ENSRNOG00000000010     0.016144150     0.000000000     0.007403250
+## ENSRNOG00000000012     0.066138935     0.098056788     0.063249503
+##                    x199_73_kidneys x199_48_quadriceps x199_61_quadriceps
+## ENSRNOG00000000001      0.02233991         0.03389630        0.021306816
+## ENSRNOG00000000007      0.00000000         0.00263122        0.008637899
+## ENSRNOG00000000008      0.00000000         0.01377521        0.043189493
+## ENSRNOG00000000009      0.00000000         0.01176310        0.000000000
+## ENSRNOG00000000010      0.00000000         0.00000000        0.000000000
+## ENSRNOG00000000012      0.04244584         1.02338977        1.239682406
+##                    x199_74_quadriceps x199_49_thymus x199_62_thymus
+## ENSRNOG00000000001        0.024364072     0.01638996     0.02538907
+## ENSRNOG00000000007        0.005549594     0.02994319     0.01159501
+## ENSRNOG00000000008        0.014753799     0.01323804     0.02059114
+## ENSRNOG00000000009        0.000000000     0.00000000     0.00000000
+## ENSRNOG00000000010        0.010557765     0.52652735     0.26008804
+## ENSRNOG00000000012        1.482283084     0.68869337     0.20531162
+##                    x199_75_thymus x199_50_heart x199_63_heart x199_76_heart
+## ENSRNOG00000000001     0.02394895    0.03565470   0.037103016   0.027566613
+## ENSRNOG00000000007     0.02182444    0.04892156   0.065530866   0.057577556
+## ENSRNOG00000000008     0.03862733    0.00829179   0.003736994   0.008962544
+## ENSRNOG00000000009     0.00000000    0.00000000   0.000000000   0.005703437
+## ENSRNOG00000000010     0.29047754    0.01174670   0.002669282   0.000000000
+## ENSRNOG00000000012     0.20414545    2.48352924   2.545160116   2.778660275
+##                    x199_51_esophagus x199_64_esophagus x199_77_esophagus
+## ENSRNOG00000000001       0.141241771       0.295643694        0.22960295
+## ENSRNOG00000000007       0.006815043       0.000000000        0.02358934
+## ENSRNOG00000000008       0.000000000       0.005387980        0.01205678
+## ENSRNOG00000000009       0.007666924       0.021030504        0.01537676
+## ENSRNOG00000000010       0.004259402       0.003823728        0.01293046
+## ENSRNOG00000000012       0.762944092       0.632305561        0.79190303
+##                    x199_52_brain x199_65_brain x199_78_brain
+## ENSRNOG00000000001     0.0166137    0.06038038   0.042169027
+## ENSRNOG00000000007    31.2896578   28.82480110  28.378578264
+## ENSRNOG00000000008     0.2349373    0.09779642   0.253014161
+## ENSRNOG00000000009     0.0000000    0.00000000   0.008826075
+## ENSRNOG00000000010    25.3112664   22.21938560   5.333303155
+## ENSRNOG00000000012     0.3187876    0.28250099   0.240657656</code></pre>
+<pre class="r"><code>unify_column_names &lt;- function(df){
+  new_column_names &lt;- c()
+
+  for (col in colnames(df)) {
+    for (n in gtex_tissues){
+      if (grepl(n, col)) {
+        new_column_names &lt;- c(new_column_names, n)
+        break
+      }
+    }
+  }
+  return (new_column_names)
+}
+
+colnames(human) &lt;- unify_column_names(human)
+rownames(human) &lt;- human$name
+human &lt;- human[,-1]
+colnames(human)</code></pre>
+<pre><code>##  [1] &quot;colon&quot;       &quot;colon.1&quot;     &quot;ileum&quot;       &quot;muscle&quot;      &quot;pancreas&quot;   
+##  [6] &quot;liver&quot;       &quot;stomach&quot;     &quot;kidney&quot;      &quot;kidney.1&quot;    &quot;heart&quot;      
+## [11] &quot;heart.1&quot;     &quot;esophagus&quot;   &quot;esophagus.1&quot; &quot;esophagus.2&quot; &quot;brain&quot;      
+## [16] &quot;brain.1&quot;     &quot;brain.2&quot;     &quot;brain.3&quot;     &quot;brain.4&quot;     &quot;brain.5&quot;    
+## [21] &quot;brain.6&quot;     &quot;brain.7&quot;     &quot;brain.8&quot;     &quot;brain.9&quot;     &quot;brain.10&quot;   
+## [26] &quot;brain.11&quot;    &quot;brain.12&quot;</code></pre>
+<pre class="r"><code>colnames(mouse) &lt;-c(&quot;dummy_column&quot;, unify_column_names(mouse))
+mouse &lt;- mouse[,-1]
+colnames(mouse)</code></pre>
+<pre><code>##  [1] &quot;colon&quot;        &quot;colon.1&quot;      &quot;colon.2&quot;      &quot;ileum&quot;        &quot;ileum.1&quot;     
+##  [6] &quot;ileum.2&quot;      &quot;duodenum&quot;     &quot;duodenum.1&quot;   &quot;duodenum.2&quot;   &quot;jejunum&quot;     
+## [11] &quot;jejunum.1&quot;    &quot;jejunum.2&quot;    &quot;pancreas&quot;     &quot;pancreas.1&quot;   &quot;pancreas.2&quot;  
+## [16] &quot;liver&quot;        &quot;liver.1&quot;      &quot;liver.2&quot;      &quot;stomach&quot;      &quot;stomach.1&quot;   
+## [21] &quot;stomach.2&quot;    &quot;kidney&quot;       &quot;kidney.1&quot;     &quot;kidney.2&quot;     &quot;quadriceps&quot;  
+## [26] &quot;quadriceps.1&quot; &quot;quadriceps.2&quot; &quot;thymus&quot;       &quot;thymus.1&quot;     &quot;thymus.2&quot;    
+## [31] &quot;heart&quot;        &quot;heart.1&quot;      &quot;heart.2&quot;      &quot;esophagus&quot;    &quot;esophagus.1&quot; 
+## [36] &quot;esophagus.2&quot;  &quot;brain&quot;        &quot;brain.1&quot;      &quot;brain.2&quot;</code></pre>
+<pre class="r"><code>colnames(rat) &lt;- c(&quot;dummy_column&quot;, unify_column_names(rat))
+rat &lt;- rat[,-1]
+colnames(rat)</code></pre>
+<pre><code>##  [1] &quot;colon&quot;        &quot;colon.1&quot;      &quot;colon.2&quot;      &quot;ileum&quot;        &quot;ileum.1&quot;     
+##  [6] &quot;ileum.2&quot;      &quot;duodenum&quot;     &quot;duodenum.1&quot;   &quot;duodenum.2&quot;   &quot;jejunum&quot;     
+## [11] &quot;jejunum.1&quot;    &quot;jejunum.2&quot;    &quot;pancreas&quot;     &quot;pancreas.1&quot;   &quot;pancreas.2&quot;  
+## [16] &quot;liver&quot;        &quot;liver.1&quot;      &quot;liver.2&quot;      &quot;stomach&quot;      &quot;stomach.1&quot;   
+## [21] &quot;stomach.2&quot;    &quot;kidney&quot;       &quot;kidney.1&quot;     &quot;kidney.2&quot;     &quot;quadriceps&quot;  
+## [26] &quot;quadriceps.1&quot; &quot;quadriceps.2&quot; &quot;thymus&quot;       &quot;thymus.1&quot;     &quot;thymus.2&quot;    
+## [31] &quot;heart&quot;        &quot;heart.1&quot;      &quot;heart.2&quot;      &quot;esophagus&quot;    &quot;esophagus.1&quot; 
+## [36] &quot;esophagus.2&quot;  &quot;brain&quot;        &quot;brain.1&quot;      &quot;brain.2&quot;</code></pre>
+<pre class="r"><code>cols_to_keep &lt;- intersect(colnames(human), colnames(mouse))
+cols_to_keep</code></pre>
+<pre><code>##  [1] &quot;colon&quot;       &quot;colon.1&quot;     &quot;ileum&quot;       &quot;pancreas&quot;    &quot;liver&quot;      
+##  [6] &quot;stomach&quot;     &quot;kidney&quot;      &quot;kidney.1&quot;    &quot;heart&quot;       &quot;heart.1&quot;    
+## [11] &quot;esophagus&quot;   &quot;esophagus.1&quot; &quot;esophagus.2&quot; &quot;brain&quot;       &quot;brain.1&quot;    
+## [16] &quot;brain.2&quot;</code></pre>
+<pre class="r"><code>human &lt;- human[,cols_to_keep]
+mouse &lt;- mouse[,cols_to_keep]
+
+rat &lt;- rat[,cols_to_keep]</code></pre>
 <p><strong>pro tip</strong> Do not manually copy from the column names.
 Convert all column names from GTEX data to lower case, and split them
 appropriately.</p>
 <p>Cluster tissues using gene expression data. Run k-means and
 hierarchical clustering. For each algorithm, determine the optimal
 number of clusters.</p>
+<pre class="r"><code># HUMAN
+
+
+human_small &lt;- human
+head(human_small)</code></pre>
+<pre><code>##                       colon  colon.1     ileum pancreas     liver   stomach
+## ENSG00000223972.5 0.0000000 0.000000 0.0000000  0.00000 0.0000000 0.0000000
+## ENSG00000227232.5 4.6477700 3.595090 4.1937800  1.80871 1.7654100 3.0624800
+## ENSG00000278267.1 0.0000000 0.000000 0.0000000  0.00000 0.0000000 0.0000000
+## ENSG00000243485.5 0.0000000 0.000000 0.0000000  0.00000 0.0000000 0.0000000
+## ENSG00000237613.2 0.0000000 0.000000 0.0000000  0.00000 0.0000000 0.0000000
+## ENSG00000268020.3 0.0154943 0.032754 0.0354079  0.00000 0.0332748 0.0325904
+##                      kidney kidney.1     heart   heart.1 esophagus esophagus.1
+## ENSG00000223972.5 0.0000000  0.00000 0.0000000 0.0000000 0.0000000     0.00000
+## ENSG00000227232.5 2.7708100  2.21451 1.5203100 0.9249620 4.3264100     3.11749
+## ENSG00000278267.1 0.0000000  0.00000 0.0000000 0.0000000 0.0000000     0.00000
+## ENSG00000243485.5 0.0176647  0.00000 0.0000000 0.0178934 0.0000000     0.00000
+## ENSG00000237613.2 0.0000000  0.00000 0.0000000 0.0000000 0.0000000     0.00000
+## ENSG00000268020.3 0.0389038  0.00000 0.0364598 0.0511975 0.0356929     0.00000
+##                   esophagus.2     brain   brain.1   brain.2
+## ENSG00000223972.5     0.00000 0.0000000 0.0000000 0.0000000
+## ENSG00000227232.5     4.10335 1.4385900 1.6928500 1.5660500
+## ENSG00000278267.1     0.00000 0.0000000 0.0000000 0.0000000
+## ENSG00000243485.5     0.00000 0.0000000 0.0000000 0.0242641
+## ENSG00000237613.2     0.00000 0.0000000 0.0000000 0.0000000
+## ENSG00000268020.3     0.00000 0.0496721 0.0535347 0.0455724</code></pre>
+<pre class="r"><code>human_t &lt;- t(human_small)
+human_t &lt;- as.data.frame(human_t)
+human_t &lt;- sapply(human_t, as.numeric)
+
+rownames(human_t) &lt;- colnames(human_small)
+
+
+human_t_s &lt;- scale(human_t)
+# Dissimilarity matrix
+human_matrix &lt;- dist(human_t_s, method = &quot;euclidean&quot;)
+
+
+# Hierarchical clustering using Complete Linkage
+hc_human &lt;- hclust(human_matrix, method = &quot;complete&quot; )
+
+plot(hc_human, labels = rownames(human_t), cex = 0.6)</code></pre>
+<p><img src="data:image/png;base64,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hgAF0Bi3cmYIUGCAvv/08vd/WLzeUU1R7xGgwOB8G0fRvb8d2Ox9u6gpGgACFBiaWbTz12TXe2JzAshFTdEAEKDAwJgTQObYpd0JIPuaoiEgQIGBMeE5/5/NcmxrioaAAAUGxlWAggAFhmcSHWX3w9ueALKsKRoAAhQYmsvx6PF49OexzQkgBzVFQ0CAAoNzmZ0Assk+BzVFQ0CAAgMUn3/+zer11BRNEaAAGqOmaIYABdCYo5qi3iNAATTnoqZoAAhQAM25qCkaAAIUgIR1TdEQEKAAIESAAhCxrSkaAgIUgICDmqIBIEABNOeipmgACFAAjbmpKeo/AhRAY5TEyxCgABojQDMEKIDmnNUU9RsBCqA5FzVFA0CAAhBwUFM0AAQoABHbmqIhIEABQIgABQAhAhQAhAhQABAiQAFAiAAFACECFACECFAAECJAAUCIAAUAIQIUAIQIUAAQIkABQIgABQAhAhQAhAhQABAiQAFAiAAFACECFACECFAAECJAAUCIAAUAIQIUAIQIUAAQIkABQIgABQAhAhQAhAhQABAiQAFAiAAFACECFACECFAAECJAAUCIAAUAIQIUAIQIUAAQIkABQIgABQAhAhQAhAhQABAiQAFAiAAFACECFACECFAAECJAAUCIAAUAIQIUAIQIUAAQIkABQIgABQAhAhQAhAhQABAiQAFAiAAFACECFACECFAAECJAPpYzhgAACs5JREFUAUCIAAUAIQIUAIQIUAAQIkABQIgABQAhAhQAhAhQABAiQAFAiAAFACECFACECFAAECJAAUCIAAUAIQIUAIQIUAAQIkABQIgABQAhAhQAhAhQABAiQAFAiAAFACECFACECFAAECJAAUCIAAUAIQIUAIQIUAAQIkABQIgABQAhAhQAhAhQABAiQAFAiAAFACECFACECFAAECJAAUCIAAUAIQIUAIQIUAAQIkABQIgABQAhAhQAhAhQABAiQAFAiAAFACECFACECFAAECJAAUCIAAUAIQIUAIQIUAAQIkABQIgABQAhAhQAhAhQABAiQAFAiAAFACECFACECFAAECJAAUCIAAUAIQIUAIQIUAAQIkABQIgABQAhAhQAhAhQABAiQAFAiAAFACECFACECFAAECJAAUCIAAUAIQIUAIQIUAAQIkABQIgABQAhAhQti4+j0Ye+G3G3q/elbyRtvve1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" width="672" /></p>
+<pre class="r"><code>hc_human</code></pre>
+<pre><code>## 
+## Call:
+## hclust(d = human_matrix, method = &quot;complete&quot;)
+## 
+## Cluster method   : complete 
+## Distance         : euclidean 
+## Number of objects: 16</code></pre>
+<pre class="r"><code># MOUSE
+
+mouse_small &lt;- mouse
+head(mouse_small)</code></pre>
+<pre><code>##                          colon    colon.1       ileum   pancreas        liver
+## ENSMUSG00000000001 12.95896769 14.4841569 18.98766148 0.51288675 5.926545e+00
+## ENSMUSG00000000003  0.00000000  0.0000000  0.00000000 0.00000000 0.000000e+00
+## ENSMUSG00000000028  1.52791322  0.8770987  1.46415411 0.01053091 1.118434e-01
+## ENSMUSG00000000031  0.01336138  0.1082531  0.03453278 0.09404835 9.826036e-03
+## ENSMUSG00000000037  0.27233638  0.1082531  0.06888663 0.00000000 0.000000e+00
+## ENSMUSG00000000049  0.17428743  0.1290637  0.19145117 0.12355576 2.792545e+02
+##                       stomach      kidney   kidney.1       heart    heart.1
+## ENSMUSG00000000001 5.73340964 7.782624978 7.03333273 17.87469257 1.90000137
+## ENSMUSG00000000003 0.00000000 0.000000000 0.00000000  0.01610483 0.00000000
+## ENSMUSG00000000028 0.38171017 0.264255455 0.27688423  6.24867561 0.28870256
+## ENSMUSG00000000031 0.11269817 0.004694894 0.04107623  1.58413004 2.35518799
+## ENSMUSG00000000037 0.01961241 0.038900549 0.02349628  0.14096959 0.03092079
+## ENSMUSG00000000049 0.04654288 0.639511616 0.53551236  0.06128203 0.00000000
+##                       esophagus esophagus.1 esophagus.2     brain    brain.1
+## ENSMUSG00000000001  16.18996114  16.1568284  10.6344178 3.7434800 3.38170071
+## ENSMUSG00000000003   0.00000000   0.0000000   0.0000000 0.0000000 0.00000000
+## ENSMUSG00000000028   0.55300927   0.6578819   0.4731032 0.2485651 0.24276022
+## ENSMUSG00000000031 262.79854506 375.1804870 157.0980808 0.3810998 0.23743547
+## ENSMUSG00000000037   0.38773556   0.3744390   0.2233843 0.1540403 0.08374381
+## ENSMUSG00000000049   0.06271632   0.0745393   0.0000000 0.2265593 0.08592211
+##                      brain.2
+## ENSMUSG00000000001 3.3481938
+## ENSMUSG00000000003 0.0000000
+## ENSMUSG00000000028 0.1795119
+## ENSMUSG00000000031 0.1516935
+## ENSMUSG00000000037 0.1302947
+## ENSMUSG00000000049 0.0608676</code></pre>
+<pre class="r"><code>mouse_t &lt;- t(mouse_small)
+mouse_t &lt;- as.data.frame(mouse_t)
+mouse_t &lt;- sapply(mouse_t, as.numeric)
+
+rownames(mouse_t) &lt;- colnames(mouse_small)
+
+mouse_t_s &lt;- scale(mouse_t)
+# Dissimilarity matrix
+mouse_matrix &lt;- dist(mouse_t_s, method = &quot;euclidean&quot;)
+
+
+# Hierarchical clustering using Complete Linkage
+hc_mouse &lt;- hclust(mouse_matrix, method = &quot;complete&quot; )
+
+plot(hc_mouse, labels = rownames(mouse_t), cex = 0.6)</code></pre>
+<p><img src="data:image/png;base64,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" width="672" /></p>
+<pre class="r"><code>hc_mouse</code></pre>
+<pre><code>## 
+## Call:
+## hclust(d = mouse_matrix, method = &quot;complete&quot;)
+## 
+## Cluster method   : complete 
+## Distance         : euclidean 
+## Number of objects: 16</code></pre>
+<pre class="r"><code># RAT
+
+rat_small &lt;- rat
+head(rat_small)</code></pre>
+<pre><code>##                         colon     colon.1       ileum   pancreas       liver
+## ENSRNOG00000000001 0.30004408 0.329924851 0.120858886 0.00000000 0.005793126
+## ENSRNOG00000000007 0.03471985 0.017270756 0.003435265 0.02890567 0.002673750
+## ENSRNOG00000000008 0.00000000 0.000000000 0.000000000 0.00000000 0.000000000
+## ENSRNOG00000000009 0.00000000 0.009792697 0.000000000 0.00000000 0.000000000
+## ENSRNOG00000000010 0.05022266 0.338649254 0.000000000 0.00000000 0.000000000
+## ENSRNOG00000000012 0.23770985 0.201551501 0.086193934 0.21073474 0.008169792
+##                        stomach      kidney    kidney.1      heart     heart.1
+## ENSRNOG00000000001 0.128328356 0.015928748 0.050696167 0.03565470 0.037103016
+## ENSRNOG00000000007 0.013022751 0.004822465 0.005793848 0.04892156 0.065530866
+## ENSRNOG00000000008 0.015464516 0.004237924 0.010300174 0.00829179 0.003736994
+## ENSRNOG00000000009 0.000000000 0.000000000 0.000000000 0.00000000 0.000000000
+## ENSRNOG00000000010 0.002713073 0.000000000 0.007403250 0.01174670 0.002669282
+## ENSRNOG00000000012 0.142300682 0.098056788 0.063249503 2.48352924 2.545160116
+##                      esophagus esophagus.1 esophagus.2      brain     brain.1
+## ENSRNOG00000000001 0.141241771 0.295643694  0.22960295  0.0166137  0.06038038
+## ENSRNOG00000000007 0.006815043 0.000000000  0.02358934 31.2896578 28.82480110
+## ENSRNOG00000000008 0.000000000 0.005387980  0.01205678  0.2349373  0.09779642
+## ENSRNOG00000000009 0.007666924 0.021030504  0.01537676  0.0000000  0.00000000
+## ENSRNOG00000000010 0.004259402 0.003823728  0.01293046 25.3112664 22.21938560
+## ENSRNOG00000000012 0.762944092 0.632305561  0.79190303  0.3187876  0.28250099
+##                         brain.2
+## ENSRNOG00000000001  0.042169027
+## ENSRNOG00000000007 28.378578264
+## ENSRNOG00000000008  0.253014161
+## ENSRNOG00000000009  0.008826075
+## ENSRNOG00000000010  5.333303155
+## ENSRNOG00000000012  0.240657656</code></pre>
+<pre class="r"><code>rat_t &lt;- t(rat_small)
+rat_t &lt;- as.data.frame(rat_t)
+rat_t &lt;- sapply(rat_t, as.numeric)
+
+rownames(rat_t) &lt;- colnames(rat_small)
+
+
+rat_t_s &lt;- scale(rat_t)
+# Dissimilarity matrix
+rat_matrix &lt;- dist(rat_t_s, method = &quot;euclidean&quot;)
+
+
+# Hierarchical clustering using Complete Linkage
+hc_rat &lt;- hclust(rat_matrix, method = &quot;complete&quot; )
+
+plot(hc_rat, labels = rownames(rat_t), cex = 0.8)</code></pre>
+<p><img src="data:image/png;base64,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" width="672" /></p>
 <p>Compare the clustering results using both methodologies, and with the
 tissues/species. Show the results of the final partitions as a
 table.</p>
@@ -431,25 +1283,23 @@ same genes that are more variable according to the exercise 1?</p>
 </div>
 <div id="session-info" class="section level1 unnumbered">
 <h1 class="unnumbered">session info</h1>
-<p>R version 3.6.3 (2020-02-29) Platform: x86_64-pc-linux-gnu (64-bit)
-Running under: Ubuntu 20.04.6 LTS</p>
-<p>Matrix products: default BLAS:
-/usr/lib/x86_64-linux-gnu/blas/libblas.so.3.9.0 LAPACK:
-/usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.9.0</p>
-<p>locale: [1] LC_CTYPE=en_US.UTF-8 LC_NUMERIC=C<br />
-[3] LC_TIME=es_ES.UTF-8 LC_COLLATE=en_US.UTF-8<br />
-[5] LC_MONETARY=es_ES.UTF-8 LC_MESSAGES=en_US.UTF-8<br />
-[7] LC_PAPER=es_ES.UTF-8 LC_NAME=C<br />
-[9] LC_ADDRESS=C LC_TELEPHONE=C<br />
-[11] LC_MEASUREMENT=es_ES.UTF-8 LC_IDENTIFICATION=C</p>
+<p>R version 4.3.2 (2023-10-31 ucrt) Platform: x86_64-w64-mingw32/x64
+(64-bit) Running under: Windows 11 x64 (build 22631)</p>
+<p>Matrix products: default</p>
+<p>locale: [1] LC_COLLATE=English_United States.utf8 [2]
+LC_CTYPE=English_United States.utf8<br />
+[3] LC_MONETARY=English_United States.utf8 [4] LC_NUMERIC=C<br />
+[5] LC_TIME=English_United States.utf8</p>
+<p>time zone: Europe/Prague tzcode source: internal</p>
 <p>attached base packages: [1] stats graphics grDevices utils datasets
 methods base</p>
-<p>loaded via a namespace (and not attached): [1] digest_0.6.31 R6_2.5.1
-jsonlite_1.8.4 evaluate_0.21<br />
-[5] cachem_1.0.8 rlang_1.1.1 cli_3.6.1 rstudioapi_0.14 [9]
-jquerylib_0.1.4 bslib_0.4.2 rmarkdown_2.21 tools_3.6.3<br />
-[13] xfun_0.39 yaml_2.3.7 fastmap_1.1.1 compiler_3.6.3 [17]
-htmltools_0.5.5 knitr_1.43 sass_0.4.6</p>
+<p>loaded via a namespace (and not attached): [1] digest_0.6.33 R6_2.5.1
+fastmap_1.1.1 xfun_0.41<br />
+[5] cachem_1.0.8 knitr_1.45 htmltools_0.5.7 rmarkdown_2.25<br />
+[9] lifecycle_1.0.4 cli_3.6.1 sass_0.4.7 jquerylib_0.1.4<br />
+[13] compiler_4.3.2 highr_0.10 rstudioapi_0.15.0 tools_4.3.2<br />
+[17] evaluate_0.23 bslib_0.6.0 yaml_2.3.7 rlang_1.1.2<br />
+[21] jsonlite_1.8.7</p>
 </div>
 
 

@@ -22,8 +22,27 @@ Follow the tutorial from the [clustering section](https://genomicsclass.github.i
 Install the package [tissuesGeneExpression](https://github.com/genomicsclass/tissuesGeneExpression) by running in R: 
 
 ```{r, eval=F}
-library(devtools)
+install.packages("devtools")
+install.packages("rafalib")
 install_github("genomicsclass/tissuesGeneExpression")
+library(devtools)
+library(rafalib)
+library(tissuesGeneExpression)
+
+
+data(tissuesGeneExpression)
+d <- dist( t(e) )
+mypar()
+hc <- hclust(d)
+hc
+table(t(e))
+tissue
+plot(hc,labels=tissue,cex=0.5)
+myplclust(hc, labels=tissue, lab.col=as.fumeric(tissue), cex=0.5)
+abline(h=120)
+
+hclusters <- cutree(hc, h=120)
+table(true=tissue, cluster=hclusters)
 ```
 
 ## Clustering gene expression data in healthy tissues
@@ -36,7 +55,119 @@ From GTEX data, keep only tissues belonging to the following categories:
 
 
 ```{r}
-gtex_tissues <-  c("colon", "ileum", "duodenum", "jejunum", "small intestine"  , "muscle", "pancreas", "liver", "stomach",  "kidney",  "quadriceps", "thymus", "heart" ,    "esophagus", "brain" )
+
+# load data
+human <- read.delim("data.gct", stringsAsFactors = FALSE, sep = "\t", skip = 2)
+mouse <- read.delim("mouse_tpm.txt")
+mouseD <- read.delim("mouse_design.txt")
+rat <- read.delim("rat_tpm.txt")
+ratD <- read.delim("rat_design.txt")
+
+
+# convert cols to lower
+colnames(human) <- tolower(colnames(human))
+colnames(mouse) <- tolower(colnames(mouse))
+colnames(rat) <- tolower(colnames(rat))
+
+
+colnames(human)
+colnames(mouse)
+colnames(rat)
+gtex_tissues <-  c("name", "colon", "ileum", "duodenum", "jejunum", "small intestine"  , "muscle", "pancreas", "liver", "stomach",  "kidney",  "quadriceps", "thymus", "heart" ,    "esophagus", "brain" )
+
+
+
+# keep only the columns of interest
+
+keep_subset <- function(tissues, columns){
+  columns_to_keep_data <- c()
+  
+  for (t in tissues){
+    for(a in columns){
+      #if (any(grepl(t, columns_to_keep_data))) {
+      #  next
+      #}
+      if (grepl(t, a)) {
+        columns_to_keep_data <- c(columns_to_keep_data, a)
+      }
+    }
+  }
+  print(columns_to_keep_data)
+  return (columns_to_keep_data)
+}
+
+human_cols <- keep_subset(gtex_tissues, colnames(human))
+
+
+mouse_cols <- keep_subset(gtex_tissues, colnames(mouse))
+
+rat_cols <- keep_subset(gtex_tissues, colnames(rat))
+
+
+
+human <- human[human_cols]
+head(human)
+
+
+# for some reason... if we add a dummy columns and later take them out, the columns with the same name will have
+# number suffixes
+
+mouse <- mouse[mouse_cols]
+new_column <- rep(0, nrow(mouse))  
+mouse <- cbind(dummy_column = new_column, mouse)
+
+head(mouse)
+
+
+rat <- rat[rat_cols] 
+new_column <- rep(0, nrow(rat))
+rat <- cbind(dummy_column = new_column, rat)
+
+head(rat)
+
+# make the columns names unified... for example only brain... etc
+unify_column_names <- function(df){
+  new_column_names <- c()
+
+  for (col in colnames(df)) {
+    for (n in gtex_tissues){
+      if (grepl(n, col)) {
+        new_column_names <- c(new_column_names, n)
+        break
+      }
+    }
+  }
+  return (new_column_names)
+}
+
+# put the unified column names in the dataframes
+
+colnames(human) <- unify_column_names(human)
+rownames(human) <- human$name
+human <- human[,-1]
+colnames(human)
+
+# here we have the use of dummy column... note the brain, brain.1, brain.2 etc.
+
+colnames(mouse) <-c("dummy_column", unify_column_names(mouse))
+mouse <- mouse[,-1]
+colnames(mouse)
+
+
+
+colnames(rat) <- c("dummy_column", unify_column_names(rat))
+rat <- rat[,-1]
+colnames(rat)
+
+cols_to_keep <- intersect(colnames(human), colnames(mouse))
+cols_to_keep
+human <- human[,cols_to_keep]
+mouse <- mouse[,cols_to_keep]
+
+rat <- rat[,cols_to_keep]
+
+
+
 ```
 
 **pro tip** Do not manually copy from the column names. Convert all column names from GTEX data to lower case, and split them appropriately.
@@ -46,6 +177,96 @@ Cluster tissues using gene expression data. Run k-means and hierarchical cluster
 
 
 ```{r}
+
+# hierarchical clustering
+# HUMAN
+
+
+human_small <- human
+head(human_small)
+
+human_t <- t(human_small)
+human_t <- as.data.frame(human_t)
+human_t <- sapply(human_t, as.numeric)
+
+rownames(human_t) <- colnames(human_small)
+
+
+human_t_s <- scale(human_t)
+# Check for NaN or NA values in the dataframe
+has_na <- any(is.na(human_t_s))
+has_na
+
+human_t_s[is.na(human_t_s)] <- 0
+human_matrix <- dist(human_t_s, method = "euclidean")
+
+
+# Hierarchical clustering using Complete Linkage
+hc_human <- hclust(human_matrix, method = "complete" )
+rownames(human_t)
+plot(hc_human, labels = rownames(human_t), cex = 0.6)
+
+hc_human
+
+# kmeans clustering for HUMAN
+
+library(cluster)  # For kmeans clustering
+library(ggplot2)  # For visualization
+
+
+kmeans_result <- kmeans(human_t_s, centers = 3)
+kmeans_result$cluster
+
+
+
+
+# MOUSE
+
+mouse_small <- mouse
+head(mouse_small)
+
+mouse_t <- t(mouse_small)
+mouse_t <- as.data.frame(mouse_t)
+mouse_t <- sapply(mouse_t, as.numeric)
+
+rownames(mouse_t) <- colnames(mouse_small)
+
+mouse_t_s <- scale(mouse_t)
+# Dissimilarity matrix
+mouse_matrix <- dist(mouse_t_s, method = "euclidean")
+
+
+# Hierarchical clustering using Complete Linkage
+hc_mouse <- hclust(mouse_matrix, method = "complete" )
+
+plot(hc_mouse, labels = rownames(mouse_t), cex = 0.6)
+
+hc_mouse
+
+
+
+# RAT
+
+rat_small <- rat
+head(rat_small)
+
+rat_t <- t(rat_small)
+rat_t <- as.data.frame(rat_t)
+rat_t <- sapply(rat_t, as.numeric)
+
+rownames(rat_t) <- colnames(rat_small)
+
+
+rat_t_s <- scale(rat_t)
+# Dissimilarity matrix
+rat_matrix <- dist(rat_t_s, method = "euclidean")
+
+
+# Hierarchical clustering using Complete Linkage
+hc_rat <- hclust(rat_matrix, method = "complete" )
+
+plot(hc_rat, labels = rownames(rat_t), cex = 0.8)
+
 
 ```
 
