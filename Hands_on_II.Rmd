@@ -22,27 +22,27 @@ Follow the tutorial from the [clustering section](https://genomicsclass.github.i
 Install the package [tissuesGeneExpression](https://github.com/genomicsclass/tissuesGeneExpression) by running in R: 
 
 ```{r, eval=F}
-install.packages("devtools")
-install.packages("rafalib")
-install_github("genomicsclass/tissuesGeneExpression")
-library(devtools)
-library(rafalib)
-library(tissuesGeneExpression)
-
-
-data(tissuesGeneExpression)
-d <- dist( t(e) )
-mypar()
-hc <- hclust(d)
-hc
-table(t(e))
-tissue
-plot(hc,labels=tissue,cex=0.5)
-myplclust(hc, labels=tissue, lab.col=as.fumeric(tissue), cex=0.5)
-abline(h=120)
-
-hclusters <- cutree(hc, h=120)
-table(true=tissue, cluster=hclusters)
+# install.packages("devtools")
+# install.packages("rafalib")
+# install_github("genomicsclass/tissuesGeneExpression")
+# library(devtools)
+# library(rafalib)
+# library(tissuesGeneExpression)
+# 
+# 
+# data(tissuesGeneExpression)
+# d <- dist( t(e) )
+# mypar()
+# hc <- hclust(d)
+# hc
+# table(t(e))
+# tissue
+# plot(hc,labels=tissue,cex=0.5)
+# myplclust(hc, labels=tissue, lab.col=as.fumeric(tissue), cex=0.5)
+# abline(h=120)
+# 
+# hclusters <- cutree(hc, h=120)
+# table(true=tissue, cluster=hclusters)
 ```
 
 ## Clustering gene expression data in healthy tissues
@@ -63,16 +63,12 @@ mouseD <- read.delim("mouse_design.txt")
 rat <- read.delim("rat_tpm.txt")
 ratD <- read.delim("rat_design.txt")
 
-
 # convert cols to lower
 colnames(human) <- tolower(colnames(human))
 colnames(mouse) <- tolower(colnames(mouse))
 colnames(rat) <- tolower(colnames(rat))
 
 
-colnames(human)
-colnames(mouse)
-colnames(rat)
 gtex_tissues <-  c("name", "colon", "ileum", "duodenum", "jejunum", "small intestine"  , "muscle", "pancreas", "liver", "stomach",  "kidney",  "quadriceps", "thymus", "heart" ,    "esophagus", "brain" )
 
 
@@ -92,7 +88,6 @@ keep_subset <- function(tissues, columns){
       }
     }
   }
-  print(columns_to_keep_data)
   return (columns_to_keep_data)
 }
 
@@ -106,8 +101,6 @@ rat_cols <- keep_subset(gtex_tissues, colnames(rat))
 
 
 human <- human[human_cols]
-head(human)
-
 
 # for some reason... if we add a dummy columns and later take them out, the columns with the same name will have
 # number suffixes
@@ -116,14 +109,10 @@ mouse <- mouse[mouse_cols]
 new_column <- rep(0, nrow(mouse))  
 mouse <- cbind(dummy_column = new_column, mouse)
 
-head(mouse)
-
 
 rat <- rat[rat_cols] 
 new_column <- rep(0, nrow(rat))
 rat <- cbind(dummy_column = new_column, rat)
-
-head(rat)
 
 # make the columns names unified... for example only brain... etc
 unify_column_names <- function(df){
@@ -145,20 +134,20 @@ unify_column_names <- function(df){
 colnames(human) <- unify_column_names(human)
 rownames(human) <- human$name
 human <- human[,-1]
-colnames(human)
+
 
 # here we have the use of dummy column... note the brain, brain.1, brain.2 etc.
 
 colnames(mouse) <-c("dummy_column", unify_column_names(mouse))
 mouse <- mouse[,-1]
-colnames(mouse)
 
 
 
 colnames(rat) <- c("dummy_column", unify_column_names(rat))
 rat <- rat[,-1]
-colnames(rat)
 
+
+# Keep only those columns in the datasets
 cols_to_keep <- intersect(colnames(human), colnames(mouse))
 cols_to_keep
 human <- human[,cols_to_keep]
@@ -166,6 +155,31 @@ mouse <- mouse[,cols_to_keep]
 
 rat <- rat[,cols_to_keep]
 
+
+# Add suffixes to differentiate columns by the species
+colnames(human) <- paste(colnames(human), "_human", sep = "")
+
+colnames(mouse) <- paste(colnames(mouse), "_mouse", sep = "")
+
+colnames(rat) <- paste(colnames(rat), "_rat", sep = "")
+
+mapping <- read.csv("mapping.csv")
+head(mapping)
+
+# Add a new column ID
+human$ID <- rownames(human)
+rat$ID <- rownames(rat)
+mouse$ID <- rownames(mouse)
+
+
+
+# Create a one big dataframe with all the species
+human_mapping <- merge(human, mapping, by.x = "ID", by.y = "Gene.stable.ID.version")
+
+human_mapping_rat <- merge(human_mapping, rat, by.x = "Rat.gene.stable.ID", by.y = "ID")
+
+
+human_mapping_rat_mouse <- merge(human_mapping_rat, mouse, by.x = "Mouse.gene.stable.ID", by.y = "ID")
 
 
 ```
@@ -177,102 +191,75 @@ Cluster tissues using gene expression data. Run k-means and hierarchical cluster
 
 
 ```{r}
-
-# hierarchical clustering
-# HUMAN
-
-
-human_small <- human
-head(human_small)
-
-human_t <- t(human_small)
-human_t <- as.data.frame(human_t)
-human_t <- sapply(human_t, as.numeric)
-
-rownames(human_t) <- colnames(human_small)
+# install.packages("factoextra")
+library(factoextra)
+library(ggplot2)
 
 
-human_t_s <- scale(human_t)
+# Hierarchical clustering
+all_tables <- human_mapping_rat_mouse[-(1:2)]
+
+all_tables_t <- t(all_tables)
+all_tables_t <- as.data.frame(all_tables_t)
+
+colnames(all_tables_t) <- all_tables_t[1,]
+all_tables_t <- all_tables_t[-1,]
+
+
+all_tables_t <- sapply(all_tables_t, as.numeric)
+
+
+rownames(all_tables_t) <- colnames(all_tables[-1])
+
+# Scale
+all_tables_t_s <- scale(all_tables_t)
+
 # Check for NaN or NA values in the dataframe
-has_na <- any(is.na(human_t_s))
+has_na <- any(is.na(all_tables_t_s))
 has_na
 
-human_t_s[is.na(human_t_s)] <- 0
-human_matrix <- dist(human_t_s, method = "euclidean")
+# Remove NA
+all_tables_t_s[is.na(all_tables_t_s)] <- 0
+all_tables_matrix <- dist(all_tables_t_s, method = "euclidean")
 
 
-# Hierarchical clustering using Complete Linkage
-hc_human <- hclust(human_matrix, method = "complete" )
-rownames(human_t)
-plot(hc_human, labels = rownames(human_t), cex = 0.6)
-
-hc_human
-
-# kmeans clustering for HUMAN
-
-library(cluster)  # For kmeans clustering
-library(ggplot2)  # For visualization
+# See the tree
+hc_result <- hclust(all_tables_matrix, method = "complete" )
+plot(hc_result, labels = rownames(all_tables_t), cex = 0.6)
 
 
-kmeans_result <- kmeans(human_t_s, centers = 3)
-kmeans_result$cluster
+# Color the tree into 3 groups
+tree_coloured <- fviz_dend(hc_result, k = 3, k_colors = c("#E41A1C", "#377EB8", "#4DAF4A"),
+          color_labels_by_k = TRUE, rect = TRUE, show_labels = TRUE, cex = 0.5) + 
+      guides(color = "none")
+
+tree_coloured
 
 
+# KMeans
 
+fviz_nbclust(all_tables_t_s, kmeans, method = "wss")
 
-# MOUSE
+km <- kmeans(all_tables_t_s, centers = 3, iter.max=10, nstart = 25)
+km$tot.withinss
+km$cluster
 
-mouse_small <- mouse
-head(mouse_small)
-
-mouse_t <- t(mouse_small)
-mouse_t <- as.data.frame(mouse_t)
-mouse_t <- sapply(mouse_t, as.numeric)
-
-rownames(mouse_t) <- colnames(mouse_small)
-
-mouse_t_s <- scale(mouse_t)
-# Dissimilarity matrix
-mouse_matrix <- dist(mouse_t_s, method = "euclidean")
-
-
-# Hierarchical clustering using Complete Linkage
-hc_mouse <- hclust(mouse_matrix, method = "complete" )
-
-plot(hc_mouse, labels = rownames(mouse_t), cex = 0.6)
-
-hc_mouse
-
-
-
-# RAT
-
-rat_small <- rat
-head(rat_small)
-
-rat_t <- t(rat_small)
-rat_t <- as.data.frame(rat_t)
-rat_t <- sapply(rat_t, as.numeric)
-
-rownames(rat_t) <- colnames(rat_small)
-
-
-rat_t_s <- scale(rat_t)
-# Dissimilarity matrix
-rat_matrix <- dist(rat_t_s, method = "euclidean")
-
-
-# Hierarchical clustering using Complete Linkage
-hc_rat <- hclust(rat_matrix, method = "complete" )
-
-plot(hc_rat, labels = rownames(rat_t), cex = 0.8)
-
+table(km$cluster)
+res_cluster <- fviz_cluster(object = km, data = all_tables_matrix)
+res_cluster
 
 ```
 
 Compare the clustering results using both methodologies, and with the tissues/species. Show the results of the final partitions as a table. 
 
 ```{r}
+
+# Create a table to see in which cluster is which tissue
+cluster_assignments <- cutree(hc_result, k = 3)
+
+cluster_table <- data.frame(Dendrogram_cluster = cluster_assignments, Kmeans_cluster = km$cluster)
+cluster_table <- cluster_table[order(cluster_table$Dendrogram_cluster), ]
+cluster_table
 
 ```
 
