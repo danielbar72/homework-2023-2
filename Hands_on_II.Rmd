@@ -80,9 +80,6 @@ keep_subset <- function(tissues, columns){
   
   for (t in tissues){
     for(a in columns){
-      #if (any(grepl(t, columns_to_keep_data))) {
-      #  next
-      #}
       if (grepl(t, a)) {
         columns_to_keep_data <- c(columns_to_keep_data, a)
       }
@@ -91,18 +88,19 @@ keep_subset <- function(tissues, columns){
   return (columns_to_keep_data)
 }
 
-human_cols <- keep_subset(gtex_tissues, colnames(human))
 
+human_cols <- keep_subset(gtex_tissues, colnames(human))
 
 mouse_cols <- keep_subset(gtex_tissues, colnames(mouse))
 
 rat_cols <- keep_subset(gtex_tissues, colnames(rat))
 
 
+# Keep the columns of interest
 
 human <- human[human_cols]
 
-# for some reason... if we add a dummy columns and later take them out, the columns with the same name will have
+# For some reason... if we add a dummy columns and later take them out, the columns with the same name will have
 # number suffixes
 
 mouse <- mouse[mouse_cols]
@@ -114,7 +112,7 @@ rat <- rat[rat_cols]
 new_column <- rep(0, nrow(rat))
 rat <- cbind(dummy_column = new_column, rat)
 
-# make the columns names unified... for example only brain... etc
+# Make the columns names unified... for example only brain... etc
 unify_column_names <- function(df){
   new_column_names <- c()
 
@@ -130,18 +128,14 @@ unify_column_names <- function(df){
 }
 
 # put the unified column names in the dataframes
-
 colnames(human) <- unify_column_names(human)
 rownames(human) <- human$name
 human <- human[,-1]
 
 
-# here we have the use of dummy column... note the brain, brain.1, brain.2 etc.
-
+# here we have the use of dummy column... note the brain, brain.1, brain.2 etc in the output
 colnames(mouse) <-c("dummy_column", unify_column_names(mouse))
 mouse <- mouse[,-1]
-
-
 
 colnames(rat) <- c("dummy_column", unify_column_names(rat))
 rat <- rat[,-1]
@@ -163,6 +157,8 @@ colnames(mouse) <- paste(colnames(mouse), "_mouse", sep = "")
 
 colnames(rat) <- paste(colnames(rat), "_rat", sep = "")
 
+
+# Load data to map human, rat and mouse genes
 mapping <- read.csv("mapping.csv")
 head(mapping)
 
@@ -191,7 +187,7 @@ Cluster tissues using gene expression data. Run k-means and hierarchical cluster
 
 
 ```{r}
-# install.packages("factoextra")
+#install.packages("factoextra")
 library(factoextra)
 library(ggplot2)
 
@@ -266,6 +262,41 @@ cluster_table
 Plot a heatmap of the 50 genes with top variance over all samples. Add the information about tissue groups and model (human, rat and mouse) as annotations in the heatmap*. 
 
 ```{r}
+
+# Heatmap 50 genes with largest variance
+
+
+v <- all_tables
+rownames(v) <- v$ID
+v <- v[,-1]
+
+head(v)
+
+# Calculate variance for each row (gene ID)
+variances <-as.data.frame(apply(v, 1, var))
+row_names <- rownames(variances)
+
+# Order the dataframe descendingly by values in the specified column and take the top 50 rows
+top_50 <- rownames(head(variances[order(-variances$`apply(v, 1, var)`), , drop = FALSE ], 50))
+
+# Take only the 50 gene Ids with the largest variance
+heatmap_data <- v[top_50, ]
+
+# Scale the data for a heatmap
+heatmap_data <- scale(heatmap_data)
+
+heatmap_data_matrix <- as.matrix(heatmap_data)
+
+dim(heatmap_data_matrix)
+
+
+red_shades <- rev(colorRampPalette(c("white", "red"))(20))
+green_shades <- colorRampPalette(c("white", "green"))(20)
+custom_palette <- c(green_shades, red_shades)
+
+heatmap(as.matrix(heatmap_data), Rowv = NA, Colv = NA, scale = "none", col = custom_palette)
+
+
 
 ```
 
